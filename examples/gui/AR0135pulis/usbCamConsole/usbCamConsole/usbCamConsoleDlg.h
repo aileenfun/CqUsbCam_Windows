@@ -11,23 +11,50 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include "afxwin.h"
-
+#include <iostream> 
+#include <fstream> 
+#include <string>
+#include <functional>
 // CusbCamConsoleDlg ¶Ô»°¿ò
+enum PLSRegFunc
+{
+	Reg_SKIP,
+	Reg_Gain,
+	Reg_ROI_STEP,
+	Reg_ROI,
+	Reg_SENSOR_SELECT,
+	Reg_SENSOR_REG1,
+	Reg_SENSOR_REG2,
+	Reg_SENSOR_REG3,
+	Reg_SENSOR_REG4
+};
+enum PLSFunc
+{
+	Func_SKIP,
+	Func_Gain,
+	Func_ROI_STEP,
+	Func_Expo,
+	Func_Zoom,
+	Func_DispSlot,
+	Func_ROI,
 
+};
 class Cdisp_matrix
 {
 
 public:
-	int dispslot[5];
-	int resize[5];
+	int dispslot;
+	int zoom;
 
 	Cdisp_matrix()
 	{
-		for (int i = 0; i < 5; i++)
-		{
-			dispslot[i] = i;
-			resize[i] = 1;
-		}
+
+	}
+	int init(int s)
+	{
+		dispslot = s;
+		zoom = 1;
+		return s;
 	}
 };
 
@@ -89,20 +116,253 @@ public:
 	int expo;
 	RegSettingsStruct regSettings;
 };
+typedef int(*fp)(int);
+class PLSCameraClass
+{
+public:
+	cq_uint32_t CameraNum;
+	cq_uint32_t checked;
+	CCqUsbCam* m_sensorInUse;
+	RegSettingsStruct regSettings;
+	CimgDrawCross imgDrawCross;
+	SensorSettingClass sensorSettings;
+	vector<int(PLSCameraClass:: *)(int)> funclist;
+	Cdisp_matrix dispmtx;
+	int roiStep;
+	int roiPos;
+	PLSCameraClass()
+	{
+		/*
+			Func_SKIP,
+			Func_Gain,
+			Func_ROI_STEP,
+			Func_Expo,
+			Func_Zoom,
+			Func_DispSlot
 
-SensorSettingClass sensorSettings;
+			Func_ROI,
+			*/
+		funclist.push_back(&PLSCameraClass::setSkip);
+		funclist.push_back(&PLSCameraClass::setGain);
+		funclist.push_back(&PLSCameraClass::setROI_Step);
+		funclist.push_back(&PLSCameraClass::setExpo);
+		funclist.push_back(&PLSCameraClass::setZoom);
+		funclist.push_back(&PLSCameraClass::setDispSlot);
+		funclist.push_back(&PLSCameraClass::setROI);
+		dispmtx.init(CameraNum);
+
+	}
+	int setDispSlot(int s)
+	{
+		dispmtx.dispslot = s;
+		return s;
+	}
+	int useFuncList(int s, int v)
+	{
+		return (this->*funclist[s])(v);
+		
+	}
+	int wrSensorCmd(int sensor, int sensorReg, int value)
+	{
+
+		regSettings.funcNum = Reg_SENSOR_REG1;
+		regSettings.value = sensorReg >> 8;
+		actCmd();
+
+
+		regSettings.funcNum = Reg_SENSOR_REG2;
+		regSettings.value = sensorReg & 0xff;
+		actCmd();
+
+
+		regSettings.funcNum = Reg_SENSOR_REG3;
+		regSettings.value = value >> 8;
+		actCmd();
+
+
+		regSettings.funcNum = Reg_SENSOR_REG4;
+		regSettings.value = value && 0xff;
+		actCmd();
+
+
+		regSettings.funcNum = Reg_SENSOR_SELECT;
+		regSettings.value = CameraNum + 1;
+		actCmd();
+		return 0;
+	}
+	int setROI(int roi)
+	{
+		int x, y;
+
+		switch (roi)
+		{
+		case 1:
+			x = sensorSettings.ROIposX - sensorSettings.ROIStep;
+			
+			break;
+		case 2:
+			x = sensorSettings.ROIposX + sensorSettings.ROIStep;
+			
+			break;
+		case 3:
+			y = sensorSettings.ROIposY - sensorSettings.ROIStep;
+			break;
+		case 4:
+			y= sensorSettings.ROIposY + sensorSettings.ROIStep;
+			break;
+		}
+		if (0)
+		{
+			//make sure roi is in range
+		}
+		sensorSettings.ROIposX = x;
+		sensorSettings.ROIposY = y;
+		regSettings.funcNum = Reg_ROI;
+		regSettings.value = roi;
+		actCmd();
+		return 0;
+		
+	}
+	int setROI_Step(int step)
+	{
+		if (step == -1)
+			step = sensorSettings.ROIStep;
+		sensorSettings.ROIStep = step;
+		regSettings.funcNum = Reg_ROI_STEP;
+		regSettings.value = step;
+		actCmd();
+		return step;
+	}
+
+	int setGain(int gain)
+	{
+		if(gain==-1)
+		gain = sensorSettings.Gain;
+		sensorSettings.Gain = gain;
+		wrSensorCmd(0, 0x305E, 0x2010);//set sensor gain =1;
+		regSettings.funcNum = Reg_Gain;
+		regSettings.value = gain < 16 ? gain : 8;
+		actCmd();
+		switch (gain)
+		{
+		case 16://16
+			wrSensorCmd(CameraNum + 1, 0x305E, 0x2020);
+			break;
+		case 32://32
+			wrSensorCmd(CameraNum + 1, 0x305E, 0x2030);
+			break;
+		}
+		
+		return gain;
+
+	}
+
+	int setSkip(int skip)
+	{
+		if(skip==-1)
+			skip = sensorSettings.Skip;
+		sensorSettings.Skip = skip;
+		regSettings.funcNum = Reg_SKIP;
+		regSettings.value = skip;
+		actCmd();
+		
+		return skip;
+	}
+
+	int setExpo(int expo)
+	{
+		if(expo==-1)
+		expo = sensorSettings.expo;
+		
+		sensorSettings.expo = expo;
+
+		wrSensorCmd(0, 0x0202, expo);
+		
+		
+		return expo;
+	}
+	int setZoom(int zoom)
+	{
+		dispmtx.zoom = zoom;
+		return 0;
+	}
+	
+	
+
+
+	void actCmd()
+	{
+		m_sensorInUse->ArbitrFunc(&regSettings);
+	}
+};
 class PLSFiveCam
 {
 public:
 	PLSCameraClass mplsCam[5];
-	Cdisp_matrix dispmtx;
 	PLSFiveCam(CCqUsbCam* m_sensorInUse)
 	{
 		for (int i = 0; i < 5; i++)
 		{
 			mplsCam[i].CameraNum = i;
 			mplsCam[i].m_sensorInUse = m_sensorInUse;
+			mplsCam[i].checked = 0;
 		}
+	}
+	int getSelectedCnt()
+	{
+		int cnt = 0;
+		for (int i = 0; i < 5; i++)
+		{
+			if (mplsCam[i].checked == 1)
+			{
+				cnt++;
+			}
+		}
+		return cnt;
+
+	}
+	std::string saveFileName(int c)
+	{
+		std::stringstream ss;
+		ss << c;
+		std::string filename = "camSetting" + ss.str() + ".bin";
+		return filename;
+	}
+	int saveParams()
+	{
+		for (int i = 0; i < 5; i++)
+		{
+			mplsCam[i].CameraNum = i + 10;
+
+			
+			ofstream outfile;
+			outfile.open(saveFileName(i), ios::binary|ios::out);
+			outfile.write((char*)& mplsCam[i], sizeof(PLSCameraClass));
+		}
+		return 0;
+	}
+	int readParams()
+	{
+		for (int i = 0; i < 5; i++)
+		{
+			mplsCam[i].CameraNum = 0;
+
+			ifstream infile;
+			infile.open(saveFileName(i), ios::binary | ios::in);
+			infile.read((char*)&mplsCam[i],sizeof(PLSCameraClass));
+			
+			mplsCam[i].checked = 1;
+			
+			for (int i = Func_SKIP; i < Func_ROI; i++)
+			{
+				mplsCam[i].useFuncList(i, -1);
+				Sleep(100);
+			}
+
+			//ROI func must be careful
+			
+		}
+		return 0;
 	}
 	int setCrossParam(int xy, int crossStep,int crossThickness)
 	{
@@ -130,10 +390,12 @@ public:
 				}
 			}
 		}
+		return 0;
 	}
 	int setSelectCamera(int c,int s)
 	{
 		mplsCam[c].checked= s;
+		return 0;
 	}
 	int setFunction(int s,int value)
 	{
@@ -141,146 +403,34 @@ public:
 		{
 			if (mplsCam[i].checked == 1)
 			{
+				
+				
+				mplsCam[i].useFuncList(s, value);
+				/*
 				switch (s)
 				{
-				case Func_Gain:
+				case Reg_Gain:
 					mplsCam[i].setGain(value);
 					break;
-				case Func_ROI:
+				case Reg_ROI:
 					mplsCam[i].setROI(value);
 					break;
-				case Func_ROI_STEP:
+				case Reg_ROI_STEP:
 					mplsCam[i].setROI_Step(value);
 					break;
-				case Func_SKIP:
+				case Reg_SKIP:
 					mplsCam[i].setSkip(value);
 					break;
 
 				}
+				*/
 			}
 		}
+		return 0;
 	}
 };
- class PLSCameraClass
-{
-public:
-	cq_uint32_t CameraNum;
-	cq_uint32_t checked;
-	CCqUsbCam* m_sensorInUse;
-	RegSettingsStruct regSettings;
-	CimgDrawCross imgDrawCross;
-	SensorSettingClass sensorSettings;
-	int wrSensorCmd(int sensor, int sensorReg, int value)
-	{
-		
-		regSettings.funcNum = Func_SENSOR_REG1;
-		regSettings.value = sensorReg >> 8;
-		actCmd();
 
-		
-		regSettings.funcNum = Func_SENSOR_REG2;
-		regSettings.value = sensorReg & 0xff;
-		actCmd();
-
-		
-		regSettings.funcNum = Func_SENSOR_REG3;
-		regSettings.value = value >> 8;
-		actCmd();
-
-		
-		regSettings.funcNum = Func_SENSOR_REG4;
-		regSettings.value = value && 0xff;
-		actCmd();
-
-		
-		regSettings.funcNum = Func_SENSOR_SELECT;
-		regSettings.value = CameraNum+1;
-		actCmd();
-	}
-	int setROI(int roi)
-	{
-		switch (roi)
-		{
-		case 1:
-			sensorSettings.ROIposX -= sensorSettings.ROIStep;
-			break;
-		case 2:
-			sensorSettings.ROIposX += sensorSettings.ROIStep;
-			break;
-		case 3:
-			sensorSettings.ROIposY -= sensorSettings.ROIStep;
-			break;
-		case 4:
-			sensorSettings.ROIposY += sensorSettings.ROIStep;
-			break;
-		}
-		regSettings.funcNum = Func_ROI;
-		regSettings.value = roi;
-		actCmd();
-	}
-	int setROI_Step(int step)
-	{
-		sensorSettings.ROIStep = step;
-		regSettings.funcNum = Func_ROI_STEP;
-		regSettings.value = step;
-		actCmd();
-	}
-	int setGain(int gain)
-	{
-		sensorSettings.Gain = gain;
-		wrSensorCmd(0, 0x305E, 0x2010);//set sensor gain =1;
-		regSettings.funcNum = Func_Gain;
-		regSettings.value = gain < 16 ? gain : 8;
-		actCmd();
-		switch (gain)
-		{
-		case 16://16
-			wrSensorCmd(CameraNum + 1, 0x305E, 0x2020);
-		break;
-		case 32://32
-			wrSensorCmd(CameraNum + 1, 0x305E, 0x2030);
-		break;
-		}
-
-	}
-	int setSkip(int skip)
-	{
-		sensorSettings.Skip = skip;
-		regSettings.funcNum = Func_SKIP;
-		regSettings.value = skip;
-		actCmd();
-	}
-	int setExpo(int expo)
-	{
-		sensorSettings.expo = expo;
-		wrSensorCmd(0, 0x0202, expo);
-	}
-	int setZoom(int zoom)
-	{
-		sensorSettings.zoom = zoom;
-	}
-	int dispMatrix;
-	int roiStep;
-	int roiPos;
-
-	void actCmd()
-	{
-		m_sensorInUse->ArbitrFunc(&regSettings);
-	}
-};
- enum PLSFunc
- {
-	 Func_SKIP,
-	 Func_Gain,
-	 Func_ROI,
-	 Func_ROI_STEP,
-	 Func_SENSOR_SELECT,
-	 Func_SENSOR_REG1,
-	 Func_SENSOR_REG2,
-	 Func_SENSOR_REG3,
-	 Func_SENSOR_REG4
-
- };
+ 
 class CusbCamConsoleDlg : public CDialogEx
 {
 private:
@@ -384,4 +534,5 @@ public:
 	afx_msg void OnBnClickedButtonCrossSet();
 	afx_msg void OnBnClickedButtonSaveConfig2();
 	
+	afx_msg void OnBnClickedButtonLoadConfig();
 };

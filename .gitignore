@@ -10,7 +10,7 @@
 *.db
 
 # Build results
-.vc/
+.vs/
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/

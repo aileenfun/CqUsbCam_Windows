@@ -32,6 +32,7 @@ std::wstring s2ws(const std::string& s)
 
 //Cdisp_matrix dispmtx;
 //CimgDrawCross imgDrawCross;
+PLSFiveCam* mplsdisp;
 void  Disp(LPVOID lpParam)
 {
 	cq_uint8_t *pDataBuffer = (cq_uint8_t*)lpParam;
@@ -60,18 +61,18 @@ void  Disp(LPVOID lpParam)
 
 	for(int k=0;k<5;k++)
 	{
-		cv::resize(framelist[k],rframelist[k],cv::Size(framelist[k].cols*dispmtx.resize[k],framelist[k].rows*dispmtx.resize[k]));
-		int x=(dispmtx.resize[k]-1)*sig_width/2;
-		int y=(dispmtx.resize[k]-1)*sig_height/2;
+		cv::resize(framelist[k],rframelist[k],cv::Size(framelist[k].cols* mplsdisp->mplsCam[k].dispmtx.zoom,framelist[k].rows* mplsdisp->mplsCam[k].dispmtx.zoom));
+		int x=(mplsdisp->mplsCam[k].dispmtx.zoom-1)*sig_width/2;
+		int y=(mplsdisp->mplsCam[k].dispmtx.zoom-1)*sig_height/2;
 		
 		dispframelist[k]=rframelist[k](cv::Rect(x,y,sig_width,sig_height));
-		imgDrawCross.drawCross(dispframelist[k],k);
+		mplsdisp->mplsCam[k].imgDrawCross.drawCross(dispframelist[k],k);
 	}
-	dispframelist[dispmtx.dispslot[0]].copyTo(mergeimg(cv::Rect(sig_width * 0, sig_height*0, sig_width, sig_height)));//1
-	dispframelist[dispmtx.dispslot[1]].copyTo(mergeimg(cv::Rect(sig_width * 0, sig_height*2, sig_width, sig_height)));//2
-	dispframelist[dispmtx.dispslot[2]].copyTo(mergeimg(cv::Rect(sig_width * 1, sig_height*1,sig_width, sig_height)));//3
-	dispframelist[dispmtx.dispslot[3]].copyTo(mergeimg(cv::Rect(sig_width * 2, sig_height*0, sig_width, sig_height)));//4
-	dispframelist[dispmtx.dispslot[4]].copyTo(mergeimg(cv::Rect(sig_width * 2, sig_height*2, sig_width, sig_height)));//5
+	dispframelist[mplsdisp->mplsCam[0].dispmtx.dispslot].copyTo(mergeimg(cv::Rect(sig_width * 0, sig_height*0, sig_width, sig_height)));//1
+	dispframelist[mplsdisp->mplsCam[1].dispmtx.dispslot].copyTo(mergeimg(cv::Rect(sig_width * 0, sig_height*2, sig_width, sig_height)));//2
+	dispframelist[mplsdisp->mplsCam[2].dispmtx.dispslot].copyTo(mergeimg(cv::Rect(sig_width * 1, sig_height*1,sig_width, sig_height)));//3
+	dispframelist[mplsdisp->mplsCam[3].dispmtx.dispslot].copyTo(mergeimg(cv::Rect(sig_width * 2, sig_height*0, sig_width, sig_height)));//4
+	dispframelist[mplsdisp->mplsCam[4].dispmtx.dispslot].copyTo(mergeimg(cv::Rect(sig_width * 2, sig_height*2, sig_width, sig_height)));//5
 	//cv::imshow("resize",dispframelist[0]);
 	cv::imshow("disp", mergeimg);
 	//cv::imshow("disp", oneframe);
@@ -153,6 +154,10 @@ CusbCamConsoleDlg::CusbCamConsoleDlg(CWnd* pParent /*=NULL*/)
 	m_bIsCapturing = false;
 	selectCam = 0;
 	mpls = new PLSFiveCam(m_sensorInUse);
+	mplsdisp = mpls;
+
+	mpls->saveParams();
+	mpls->readParams();
 }
 CusbCamConsoleDlg::~CusbCamConsoleDlg()
 {
@@ -220,6 +225,7 @@ BEGIN_MESSAGE_MAP(CusbCamConsoleDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON_EXPO_SET, &CusbCamConsoleDlg::OnBnClickedButtonExpoSet)
 	ON_BN_CLICKED(IDC_BUTTON_CROSS_SET, &CusbCamConsoleDlg::OnBnClickedButtonCrossSet)
 	ON_BN_CLICKED(IDC_BUTTON_SAVE_CONFIG2, &CusbCamConsoleDlg::OnBnClickedButtonSaveConfig2)
+	ON_BN_CLICKED(IDC_BUTTON_LOAD_CONFIG, &CusbCamConsoleDlg::OnBnClickedButtonLoadConfig)
 END_MESSAGE_MAP()
 
 
@@ -1125,11 +1131,11 @@ void CusbCamConsoleDlg::OnBnClickedRadioX1()
 	unsigned char roistep = _tstoi(str);
 	str.ReleaseBuffer();
 
-	mpls->setFunction(Func_ROI_STEP, roistep);
+	mpls->setFunction(Reg_ROI_STEP, roistep);
 
 	//0,1,2,3
 	//1,2,4,8
-	mpls->setFunction(Func_ROI,GetValue(IDC_RADIO_X1, IDC_RADIO_Y2));
+	mpls->setFunction(Reg_ROI,GetValue(IDC_RADIO_X1, IDC_RADIO_Y2));
 	
 
 }
@@ -1140,7 +1146,7 @@ void CusbCamConsoleDlg::OnBnClickedRadioGain1()
 
 	wrSensorCmd(0, 0x305E, 0x2010);//set sensor gain =1;
 	int GainX=GetValue(IDC_RADIO_GAIN1, IDC_RADIO_GAIN6);
-	mpls->setFunction(Func_Gain, GainX);
+	mpls->setFunction(Reg_Gain, GainX);
 
 	
 	
@@ -1151,26 +1157,35 @@ void CusbCamConsoleDlg::OnBnClickedRadioSkip1()
 {
 	OnBnClickedRadioCam1();
 	
-	mpls->setFunction(Func_SKIP, GetCheckedRadioButton(IDC_RADIO_SKIP1, IDC_RADIO_SKIP3) - IDC_RADIO_SKIP1);
+	mpls->setFunction(Reg_SKIP, GetCheckedRadioButton(IDC_RADIO_SKIP1, IDC_RADIO_SKIP3) - IDC_RADIO_SKIP1);
 	
 }
 
 
 void CusbCamConsoleDlg::OnBnClickedRadioDp1()
 {
-	int selected_cam = selectCam;
+	OnBnClickedRadioCam1();
+	if (mpls->getSelectedCnt() > 1)
+	{
+		SetDlgItemText(IDC_STATIC_STATUS, L"只能选中一个相机");
+		return;
+	}
+		
 	int selected_disp = GetCheckedRadioButton(IDC_RADIO_DP1, IDC_RADIO_DP5) - IDC_RADIO_DP1;
-	mpls->dispmtx.dispslot[selected_disp] = selected_cam;
+	mpls->setFunction(Func_DispSlot, selected_disp);
+	//mpls->dispmtx.dispslot[selected_disp] = selected_cam;
 }
 
 
 
 void CusbCamConsoleDlg::OnBnClickedRadioDigx1()
 {
-	int selected_cam = selectCam;
+	
+	OnBnClickedRadioCam1();
 	//x0 =1,x1=2 x2=4
 	float resize =GetCheckedRadioButton(IDC_RADIO_DIGX1, IDC_RADIO_DIGX6) - IDC_RADIO_DIGX1;
-	mpls->dispmtx.resize[selected_cam] = std::pow(2, resize);
+	mpls->setFunction(Func_Zoom, resize);
+	
 }
 
 
@@ -1213,8 +1228,6 @@ void CusbCamConsoleDlg::OnBnClickedButtonExpoSet()
 	int expo = _tstoi(str);
 	
 	wrSensorCmd(0, 0x0202, expo);
-
-
 }
 
 
@@ -1234,21 +1247,17 @@ void CusbCamConsoleDlg::OnBnClickedButtonCrossSet()
 	}
 }
 
-void ReadFile() 
-{
-	const int N = 50;
-	int arr[N];
-	CString string;
-	CStdioFile input(L"Q:\\github\\CqUsbCam_Windows\\CqUsbCam\\Debug\\input.txt", CFile::modeRead);
-	for (int i = 0; i < N; i++) {
-		if (!input.ReadString(string))
-			break;
-		arr[i] = _ttoi(string.GetString());
-	}
-}
 void CusbCamConsoleDlg::OnBnClickedButtonSaveConfig2()
 {
-	// TODO: 在此添加控件通知处理程序代码
-	ReadFile();
+	
+	mpls->saveParams();
+	Sleep(2000); 
+	SetDlgItemText(IDC_STATIC_STATUS, L"保存成功");
+}
 
+
+void CusbCamConsoleDlg::OnBnClickedButtonLoadConfig()
+{
+	mpls->readParams();
+	SetDlgItemText(IDC_STATIC_STATUS, L"读取成功");
 }

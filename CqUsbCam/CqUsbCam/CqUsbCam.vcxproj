@@ -14,7 +14,7 @@
     <ProjectGuid>{CA6F1CEA-7BB9-4D3E-8AA0-5EC6C2B2EC1F}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>CqUsbCam</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

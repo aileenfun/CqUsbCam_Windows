@@ -18,78 +18,17 @@ cq_uint8_t		g_byteResolutionType;
 
 HANDLE g_mutexDisp;
 HANDLE g_mutexTimer;
-std::wstring s2ws(const std::string& s)
-{
-	int len;
-	int slength = (int)s.length() + 1;
-	len = MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, 0, 0);
-	wchar_t* buf = new wchar_t[len];
-	MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, buf, len);
-	std::wstring r(buf);
-	delete[] buf;
-	return r;
-}
 
-//Cdisp_matrix dispmtx;
-//CimgDrawCross imgDrawCross;
-PLSFiveCam* mplsdisp;
+
 void  Disp(LPVOID lpParam)
 {
+	int i = 0, j = 0, k = 0;
 	cq_uint8_t *pDataBuffer = (cq_uint8_t*)lpParam;
-	int sig_width = 640;
-	int sig_height= 360;
-	int imglen = 640 * 360;
-	cv::Mat framelist[5];
-	cv::Mat rframelist[5];
-	cv::Mat dispframelist[5];
-	cv::Mat oneframe(360 * 5, 640, CV_8UC1, pDataBuffer);
-	for (int i = 0; i < 5; i++)
-	{
-		cv::Mat tempframe(360, 640, CV_8UC1, pDataBuffer + i * imglen);
-		framelist[i] = tempframe.clone();
-	}
-	cv::Mat mergeimg;
-	mergeimg.create(1080, 1920, CV_8UC1);
+	cv::Mat frame(g_iHeight, g_iWidth, (g_byteBitDepthNo==1? CV_8UC1: CV_16UC1) ,pDataBuffer);
 	
-	//framelist[0].copyTo(mergeimg(cv::Rect(sig_width * 0, sig_height*0, sig_width, sig_height)));//1
-	//framelist[1].copyTo(mergeimg(cv::Rect(sig_width * 0, sig_height*2, sig_width, sig_height)));//2
-	//framelist[2].copyTo(mergeimg(cv::Rect(sig_width * 1, sig_height*1,sig_width, sig_height)));//3
-	//framelist[3].copyTo(mergeimg(cv::Rect(sig_width * 2, sig_height*0, sig_width, sig_height)));//4
-	//framelist[4].copyTo(mergeimg(cv::Rect(sig_width * 2, sig_height*2, sig_width, sig_height)));//5
-	try
-	{
-
-	for(int k=0;k<5;k++)
-	{
-		cv::resize(framelist[k],rframelist[k],cv::Size(framelist[k].cols* mplsdisp->mplsCam[k].dispmtx.zoom,framelist[k].rows* mplsdisp->mplsCam[k].dispmtx.zoom));
-		int x=(mplsdisp->mplsCam[k].dispmtx.zoom-1)*sig_width/2;
-		int y=(mplsdisp->mplsCam[k].dispmtx.zoom-1)*sig_height/2;
-		
-		dispframelist[k]=rframelist[k](cv::Rect(x,y,sig_width,sig_height));
-		mplsdisp->mplsCam[k].imgDrawCross.drawCross(dispframelist[k],k);
-	}
-	dispframelist[mplsdisp->mplsCam[0].dispmtx.dispslot].copyTo(mergeimg(cv::Rect(sig_width * 0, sig_height*0, sig_width, sig_height)));//1
-	dispframelist[mplsdisp->mplsCam[1].dispmtx.dispslot].copyTo(mergeimg(cv::Rect(sig_width * 0, sig_height*2, sig_width, sig_height)));//2
-	dispframelist[mplsdisp->mplsCam[2].dispmtx.dispslot].copyTo(mergeimg(cv::Rect(sig_width * 1, sig_height*1,sig_width, sig_height)));//3
-	dispframelist[mplsdisp->mplsCam[3].dispmtx.dispslot].copyTo(mergeimg(cv::Rect(sig_width * 2, sig_height*0, sig_width, sig_height)));//4
-	dispframelist[mplsdisp->mplsCam[4].dispmtx.dispslot].copyTo(mergeimg(cv::Rect(sig_width * 2, sig_height*2, sig_width, sig_height)));//5
-	//cv::imshow("resize",dispframelist[0]);
-	cv::imshow("disp", mergeimg);
-	//cv::imshow("disp", oneframe);
-	cv::waitKey(1);
-	/**************
-	(0, 0)--11111111111--(w,0)--00000000000--(w*2,0)--44444444444--
-	(0,h)---00000000000--(w,h)--33333333333--(w*2,h)--00000000000--
-	(0,h*2)-22222222222--(w,h*2)--00000000000--(w*2,h*2)--55555555555--
-	*****************/
-	}
-	catch (cv::Exception & e)
-	{
-		cerr << e.msg << endl; // output exception message
-		std::wstring stemp = s2ws(e.msg);
-		LPCWSTR result = stemp.c_str();
-		OutputDebugString(result);
-	}
+	//WaitForSingleObject(g_mutexDisp, INFINITE); 
+	cv::imshow("disp",frame);
+	//ReleaseMutex(g_mutexDisp);
 }
 // 用于应用程序“关于”菜单项的 CAboutDlg 对话框
 
@@ -116,7 +55,6 @@ CAboutDlg::CAboutDlg() : CDialogEx(CAboutDlg::IDD)
 void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
-
 }
 
 BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
@@ -124,6 +62,7 @@ END_MESSAGE_MAP()
 
 
 // CusbCamConsoleDlg 对话框
+
 
 
 
@@ -152,9 +91,7 @@ CusbCamConsoleDlg::CusbCamConsoleDlg(CWnd* pParent /*=NULL*/)
 	g_iHeight=720;
 	g_byteBitDepthNo=1;
 	m_bIsCapturing = false;
-	selectCam = 0;
-	mpls = new PLSFiveCam(m_sensorInUse);
-	mplsdisp = mpls;
+
 
 }
 CusbCamConsoleDlg::~CusbCamConsoleDlg()
@@ -167,6 +104,8 @@ void CusbCamConsoleDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
 
+	DDX_Control(pDX, IDC_CHECK_AUTOGAIN, cbAutoGain);
+	DDX_Control(pDX, IDC_CHECK_AUTO_EXPO, cbAutoExpo);
 }
 
 BEGIN_MESSAGE_MAP(CusbCamConsoleDlg, CDialogEx)
@@ -179,54 +118,38 @@ BEGIN_MESSAGE_MAP(CusbCamConsoleDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON_STOP_CAP, &CusbCamConsoleDlg::OnBnClickedButtonStopCap)
 	ON_BN_CLICKED(IDC_BUTTON_VEDIO_CAP, &CusbCamConsoleDlg::OnBnClickedButtonVedioCap)
 	ON_WM_TIMER()
+	ON_BN_CLICKED(IDC_RADIO_RESOLU_1280_1024, &CusbCamConsoleDlg::OnBnClickedRadioResolu12801024)
+	ON_BN_CLICKED(IDC_RADIO_TRIGMODE_AUTO, &CusbCamConsoleDlg::OnBnClickedRadioTrigmodeAuto)
+	ON_BN_CLICKED(IDC_RADIO_TRIGMODE_FPGA, &CusbCamConsoleDlg::OnBnClickedRadioTrigmodeFpga)
+	ON_BN_CLICKED(IDC_RADIO_TRIGMODE_SOFT, &CusbCamConsoleDlg::OnBnClickedRadioTrigmodeSoft)
+	ON_BN_CLICKED(IDC_RADIO_TRIGMODE_EXT, &CusbCamConsoleDlg::OnBnClickedRadioTrigmodeExt)
+	ON_BN_CLICKED(IDC_BUTTON_WR_SENSOR, &CusbCamConsoleDlg::OnBnClickedButtonWrSensor)
+	ON_BN_CLICKED(IDC_BUTTON_RD_SENSOR, &CusbCamConsoleDlg::OnBnClickedButtonRdSensor)
+	ON_BN_CLICKED(IDC_BUTTON_WR_FPGA, &CusbCamConsoleDlg::OnBnClickedButtonWrFpga)
+	ON_BN_CLICKED(IDC_BUTTON_RD_FPGA, &CusbCamConsoleDlg::OnBnClickedButtonRdFpga)
+	ON_EN_CHANGE(IDC_EDIT_FPGATRIG_FREQ, &CusbCamConsoleDlg::OnEnChangeEditFpgatrigFreq)
+	ON_BN_CLICKED(IDC_BUTTON_SOFT_TRIG, &CusbCamConsoleDlg::OnBnClickedButtonSoftTrig)
+	ON_BN_CLICKED(IDC_RADIO_MIRROR_NORMAL, &CusbCamConsoleDlg::OnBnClickedRadioMirrorNormal)
+	ON_BN_CLICKED(IDC_RADIO_MIRROR_X, &CusbCamConsoleDlg::OnBnClickedRadioMirrorX)
+	ON_BN_CLICKED(IDC_RADIO_MIRROR_Y, &CusbCamConsoleDlg::OnBnClickedRadioMirrorY)
+	ON_BN_CLICKED(IDC_RADIO_MIRROR_XY, &CusbCamConsoleDlg::OnBnClickedRadioMirrorXy)
+	ON_BN_CLICKED(IDC_CHECK_AUTOGAIN, &CusbCamConsoleDlg::setAutoGainExpo)
+	ON_EN_CHANGE(IDC_EDIT_GAIN_VALUE, &CusbCamConsoleDlg::OnEnChangeEditGainValue)
+	ON_BN_CLICKED(IDC_CHECK_AUTO_EXPO, &CusbCamConsoleDlg::setAutoGainExpo)
+	ON_EN_CHANGE(IDC_EDIT_EXPO_VALUE, &CusbCamConsoleDlg::OnEnChangeEditExpoValue)
+	ON_BN_CLICKED(IDC_BUTTON_CHECK_SPEED, &CusbCamConsoleDlg::OnBnClickedButtonCheckSpeed)
+	ON_BN_CLICKED(IDC_BUTTON_WR_EEPROM, &CusbCamConsoleDlg::OnBnClickedButtonWrEeprom)
+	ON_BN_CLICKED(IDC_BUTTON_RD_EEPROM, &CusbCamConsoleDlg::OnBnClickedButtonRdEeprom)
+	ON_BN_CLICKED(IDC_BUTTON_RD_DEV_ID, &CusbCamConsoleDlg::OnBnClickedButtonRdDevId)
+	ON_BN_CLICKED(IDC_BUTTON_WR_DEV_ID, &CusbCamConsoleDlg::OnBnClickedButtonWrDevId)
+	ON_BN_CLICKED(IDC_BUTTON_RD_DEV_SN, &CusbCamConsoleDlg::OnBnClickedButtonRdDevSn)
+	ON_BN_CLICKED(IDC_BUTTON_WR_DEV_SN, &CusbCamConsoleDlg::OnBnClickedButtonWrDevSn)
+	ON_BN_CLICKED(IDC_RADIO_RESOLU_1280_960, &CusbCamConsoleDlg::OnBnClickedRadioResolu1280960)
+	ON_BN_CLICKED(IDC_RADIO_RESOLU_640_480_SKIP, &CusbCamConsoleDlg::OnBnClickedRadioResolu640480Skip)
+	ON_BN_CLICKED(IDC_RADIO_RESOLU_640_480_BIN, &CusbCamConsoleDlg::OnBnClickedRadioResolu640480Bin)
 
 	ON_WM_DEVICECHANGE()
 	ON_WM_CLOSE()
-	
-	
-	ON_BN_CLICKED(IDC_RADIO_X1, &CusbCamConsoleDlg::OnBnClickedRadioX1)
-	ON_BN_CLICKED(IDC_RADIO_X2, &CusbCamConsoleDlg::OnBnClickedRadioX1)
-	ON_BN_CLICKED(IDC_RADIO_Y1, &CusbCamConsoleDlg::OnBnClickedRadioX1)
-	ON_BN_CLICKED(IDC_RADIO_Y2, &CusbCamConsoleDlg::OnBnClickedRadioX1)
-	
-	ON_BN_CLICKED(IDC_RADIO_GAIN1, &CusbCamConsoleDlg::OnBnClickedRadioGain1)
-	ON_BN_CLICKED(IDC_RADIO_GAIN2, &CusbCamConsoleDlg::OnBnClickedRadioGain1)
-	ON_BN_CLICKED(IDC_RADIO_GAIN3, &CusbCamConsoleDlg::OnBnClickedRadioGain1)
-	ON_BN_CLICKED(IDC_RADIO_GAIN4, &CusbCamConsoleDlg::OnBnClickedRadioGain1)
-	ON_BN_CLICKED(IDC_RADIO_GAIN5, &CusbCamConsoleDlg::OnBnClickedRadioGain1)
-	ON_BN_CLICKED(IDC_RADIO_GAIN6, &CusbCamConsoleDlg::OnBnClickedRadioGain1)
-
-	
-	ON_BN_CLICKED(IDC_RADIO_SKIP1, &CusbCamConsoleDlg::OnBnClickedRadioSkip1)
-	ON_BN_CLICKED(IDC_RADIO_SKIP2, &CusbCamConsoleDlg::OnBnClickedRadioSkip1)
-	ON_BN_CLICKED(IDC_RADIO_SKIP3, &CusbCamConsoleDlg::OnBnClickedRadioSkip1)
-	
-	ON_BN_CLICKED(IDC_RADIO_DP1, &CusbCamConsoleDlg::OnBnClickedRadioDp1)
-	ON_BN_CLICKED(IDC_RADIO_DP2, &CusbCamConsoleDlg::OnBnClickedRadioDp1)
-	ON_BN_CLICKED(IDC_RADIO_DP3, &CusbCamConsoleDlg::OnBnClickedRadioDp1)
-	ON_BN_CLICKED(IDC_RADIO_DP4, &CusbCamConsoleDlg::OnBnClickedRadioDp1)
-	ON_BN_CLICKED(IDC_RADIO_DP5, &CusbCamConsoleDlg::OnBnClickedRadioDp1)
-
-	ON_BN_CLICKED(IDC_RADIO_DIGX1, &CusbCamConsoleDlg::OnBnClickedRadioDigx1)
-	ON_BN_CLICKED(IDC_RADIO_DIGX2, &CusbCamConsoleDlg::OnBnClickedRadioDigx1)
-	ON_BN_CLICKED(IDC_RADIO_DIGX3, &CusbCamConsoleDlg::OnBnClickedRadioDigx1)
-	ON_BN_CLICKED(IDC_RADIO_DIGX4, &CusbCamConsoleDlg::OnBnClickedRadioDigx1)
-	ON_BN_CLICKED(IDC_RADIO_DIGX5, &CusbCamConsoleDlg::OnBnClickedRadioDigx1)
-	ON_BN_CLICKED(IDC_RADIO_DIGX6, &CusbCamConsoleDlg::OnBnClickedRadioDigx1)
-
-	ON_BN_CLICKED(IDC_CK_CAM1, &CusbCamConsoleDlg::OnBnClickedRadioCam1)
-	ON_BN_CLICKED(IDC_CK_CAM2, &CusbCamConsoleDlg::OnBnClickedRadioCam1)
-	ON_BN_CLICKED(IDC_CK_CAM3, &CusbCamConsoleDlg::OnBnClickedRadioCam1)
-	ON_BN_CLICKED(IDC_CK_CAM4, &CusbCamConsoleDlg::OnBnClickedRadioCam1)
-	ON_BN_CLICKED(IDC_CK_CAM5, &CusbCamConsoleDlg::OnBnClickedRadioCam1)
-	ON_BN_CLICKED(IDC_RADIO_CX1, &CusbCamConsoleDlg::OnBnClickedRadioCx1)
-	ON_BN_CLICKED(IDC_RADIO_CX2, &CusbCamConsoleDlg::OnBnClickedRadioCx1)
-	ON_BN_CLICKED(IDC_RADIO_CY1, &CusbCamConsoleDlg::OnBnClickedRadioCx1)
-	ON_BN_CLICKED(IDC_RADIO_CY2, &CusbCamConsoleDlg::OnBnClickedRadioCx1)
-	ON_BN_CLICKED(IDC_BUTTON_EXPO_SET, &CusbCamConsoleDlg::OnBnClickedButtonExpoSet)
-	ON_BN_CLICKED(IDC_BUTTON_CROSS_SET, &CusbCamConsoleDlg::OnBnClickedButtonCrossSet)
-	ON_BN_CLICKED(IDC_BUTTON_SAVE_CONFIG2, &CusbCamConsoleDlg::OnBnClickedButtonSaveConfig2)
-	ON_BN_CLICKED(IDC_BUTTON_LOAD_CONFIG, &CusbCamConsoleDlg::OnBnClickedButtonLoadConfig)
 END_MESSAGE_MAP()
 
 
@@ -260,8 +183,10 @@ BOOL CusbCamConsoleDlg::OnInitDialog()
 	//  执行此操作
 	SetIcon(m_hIcon, TRUE);			// 设置大图标
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
-	
-	return TRUE; 
+
+	// TODO: 在此添加额外的初始化代码
+
+	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
 
 void CusbCamConsoleDlg::OnSysCommand(UINT nID, LPARAM lParam)
@@ -277,7 +202,9 @@ void CusbCamConsoleDlg::OnSysCommand(UINT nID, LPARAM lParam)
 	}
 }
 
-
+// 如果向对话框添加最小化按钮，则需要下面的代码
+//  来绘制该图标。对于使用文档/视图模型的 MFC 应用程序，
+//  这将由框架自动完成。
 
 void CusbCamConsoleDlg::OnPaint()
 {
@@ -302,15 +229,6 @@ void CusbCamConsoleDlg::OnPaint()
 	{
 		CDialogEx::OnPaint();
 	}
-	CWnd:: SetWindowPos(&CWnd::wndTopMost,  0, 0, 0, 0, SWP_NOMOVE | SWP_NOREPOSITION | SWP_NOSIZE);
-	cv::namedWindow("disp");
-	cv::moveWindow("disp", 0, 0);
-	HWND hWnd = (HWND)cvGetWindowHandle("disp");//获取子窗口的HWND
-	HWND hParentWnd = ::GetParent(hWnd);//获取父窗口HWND。父窗口是我们要用的
-	 //隐藏窗口标题栏 
-	long style = GetWindowLong(hParentWnd, GWL_STYLE);
-	style &= ~(WS_SYSMENU);
-	SetWindowLong(hParentWnd, GWL_STYLE, style);
 }
 
 //当用户拖动最小化窗口时系统调用此函数取得光标
@@ -428,18 +346,15 @@ void CusbCamConsoleDlg::OnBnClickedButtonVedioCap()
 	GetDlgItem(IDC_CHECK_SAVE_VEDIO)->EnableWindow(false);
 #endif
 
-	//cv::namedWindow("disp");
-	//cv::moveWindow("disp", 0, 0);
-	//HWND hWnd = (HWND)cvGetWindowHandle("disp");//获取子窗口的HWND
-	//HWND hParentWnd = ::GetParent(hWnd);//获取父窗口HWND。父窗口是我们要用的
-	// //隐藏窗口标题栏 
-	//long style = GetWindowLong(hParentWnd, GWL_STYLE);
-	//style &= ~(WS_SYSMENU);
-	//SetWindowLong(hParentWnd, GWL_STYLE, style);
+	cv::namedWindow("disp");
+	HWND hWnd = (HWND)cvGetWindowHandle("disp");//获取子窗口的HWND
+	HWND hParentWnd = ::GetParent(hWnd);//获取父窗口HWND。父窗口是我们要用的
+	 //隐藏窗口标题栏 
+	long style = GetWindowLong(hParentWnd, GWL_STYLE);
+	style &= ~(WS_SYSMENU);
+	SetWindowLong(hParentWnd, GWL_STYLE, style);
 
-	g_byteBitDepthNo = 1;
-	g_iHeight = 360*5;
-	g_iWidth = 640;
+
 	if(m_sensorInUse->StartCap(g_iHeight, (g_byteBitDepthNo == 1 ? g_iWidth : g_iWidth * 2), Disp)<0)
 	{
 		SetDlgItemText(IDC_STATIC_STATUS, L"USB设备打开失败！");
@@ -484,13 +399,13 @@ void CusbCamConsoleDlg::OnTimer(UINT_PTR nIDEvent)
 				m_sensorInUse->ClearRecvByteCnt();
 				m_sensorInUse->GetRecvFrameCnt(iFrameCntPerSec);
 				m_sensorInUse->ClearRecvFrameCnt();
-				//str.Format(L"%d Fps     %0.4f MBs", iFrameCntPerSec,float(iByteCntPerSec)/1024.0/1024.0);		 
-				//HWND hWnd = (HWND)cvGetWindowHandle("disp");//获取子窗口的HWND
-				//HWND hParentWnd = ::GetParent(hWnd);//获取父窗口HWND。父窗口是我们要用的			
-				//if(hParentWnd !=NULL)
-				//{
-				//	::SetWindowText(hParentWnd,str);
-				//}			
+				str.Format(L"%d Fps     %0.4f MBs", iFrameCntPerSec,float(iByteCntPerSec)/1024.0/1024.0);		 
+				HWND hWnd = (HWND)cvGetWindowHandle("disp");//获取子窗口的HWND
+				HWND hParentWnd = ::GetParent(hWnd);//获取父窗口HWND。父窗口是我们要用的			
+				if(hParentWnd !=NULL)
+				{
+					::SetWindowText(hParentWnd,str);
+				}			
 				break;
 				ReleaseMutex(g_mutexTimer);
 			}
@@ -558,8 +473,7 @@ void CusbCamConsoleDlg::OnBnClickedRadioResolu640480Skip()
 		m_sensorInUse->SetResolution(RESOLU_640_480_SKIP);
 		g_byteResolutionType = RESOLU_640_480;
 		g_iWidth = 640 ;
-		//g_iHeight = 480;
-		g_iHeight = 360 * 5;
+		g_iHeight = 480;
 	}
 
 	SetDlgItemText(IDC_STATIC_STATUS, L"分辨率640x480skip。");
@@ -580,8 +494,7 @@ void CusbCamConsoleDlg::OnBnClickedRadioResolu640480Bin()
 		m_sensorInUse->SetResolution(RESOLU_640_480_BIN);
 		g_byteResolutionType = RESOLU_640_480;
 		g_iWidth = 640 ;
-		//g_iHeight = 480;
-		g_iHeight = 360 * 5;
+		g_iHeight = 480;
 	}
 
 	SetDlgItemText(IDC_STATIC_STATUS, L"分辨率640x480bin。");
@@ -1090,13 +1003,13 @@ BOOL CusbCamConsoleDlg::OnDeviceChange( UINT nEventType, DWORD dwData )
 	{
 
 		m_iDevCnt=devCnt;
-		//MessageBox(L"-----");
+		MessageBox(L"-----");
 		return TRUE;
 	}
 	if(m_iDevCnt<devCnt)
 	{
 		m_iDevCnt=devCnt;
-		//MessageBox(L"+++++");
+		MessageBox(L"+++++");
 		return TRUE;
 	}
 
@@ -1111,142 +1024,4 @@ void CusbCamConsoleDlg::OnClose()
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
 	OnBnClickedButtonStopCap();
 	CDialogEx::OnClose();
-}
-
-
-
-int CusbCamConsoleDlg::GetValue(int idc1,int idc2)
-{
-	int temp = 0;
-	int rst = 0;
-	temp = GetCheckedRadioButton(idc1, idc2) - idc1;
-	rst = 1 << temp;
-	return rst;
-}
-void CusbCamConsoleDlg::OnBnClickedRadioX1()
-{
-	OnBnClickedRadioCam1();
-
-	CString str;
-	GetDlgItemText(IDC_EDIT1, str);
-	unsigned char roistep = _tstoi(str);
-	str.ReleaseBuffer();
-
-	mpls->setFunction(Func_ROI_STEP, roistep);
-
-	//0,1,2,3
-	//1,2,4,8
-	mpls->setFunction(Func_ROI,GetValue(IDC_RADIO_X1, IDC_RADIO_Y2));
-	
-
-}
-
-void CusbCamConsoleDlg::OnBnClickedRadioGain1()
-{
-	OnBnClickedRadioCam1();
-
-	int GainX=GetValue(IDC_RADIO_GAIN1, IDC_RADIO_GAIN6);
-	mpls->setFunction(Func_Gain, GainX);
-
-}
-
-
-void CusbCamConsoleDlg::OnBnClickedRadioSkip1()
-{
-	OnBnClickedRadioCam1();
-	
-	mpls->setFunction(Func_SKIP, GetCheckedRadioButton(IDC_RADIO_SKIP1, IDC_RADIO_SKIP3) - IDC_RADIO_SKIP1);
-	
-}
-
-
-void CusbCamConsoleDlg::OnBnClickedRadioDp1()
-{
-	OnBnClickedRadioCam1();
-	if (mpls->getSelectedCnt() > 1)
-	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"只能选中一个相机");
-		return;
-	}
-		
-	int selected_disp = GetCheckedRadioButton(IDC_RADIO_DP1, IDC_RADIO_DP5) - IDC_RADIO_DP1;
-	mpls->setFunction(Func_DispSlot, selected_disp);
-	//mpls->dispmtx.dispslot[selected_disp] = selected_cam;
-}
-
-
-
-void CusbCamConsoleDlg::OnBnClickedRadioDigx1()
-{
-	
-	OnBnClickedRadioCam1();
-	//x0 =1,x1=2 x2=4
-	float resize =GetCheckedRadioButton(IDC_RADIO_DIGX1, IDC_RADIO_DIGX6) - IDC_RADIO_DIGX1+1;
-	mpls->setFunction(Func_Zoom, resize);
-	
-}
-
-
-void CusbCamConsoleDlg::OnBnClickedRadioCam1()
-{
-	//camera select
-	for (int i = 0; i < 5; i++)
-	{
-		CButton* m_ctlCheck = (CButton*)GetDlgItem(IDC_CK_CAM1+i);
-		mpls->setSelectCamera(i, m_ctlCheck->GetCheck());
-	}
-	
-}
-
-
-void CusbCamConsoleDlg::OnBnClickedRadioCx1()
-{
-	OnBnClickedRadioCam1();
-	CString str;
-	GetDlgItemText(IDC_EDIT_THICK, str);
-	unsigned char crossThickness = _tstoi(str);
-	GetDlgItemText(IDC_EDIT_THICK_STEP, str);
-	unsigned char crossStep = _tstoi(str);
-	str.ReleaseBuffer();
-
-	int xy = GetCheckedRadioButton(IDC_RADIO_CX1, IDC_RADIO_CY2)- IDC_RADIO_CX1;
-
-	mpls->setCrossParam(xy, crossStep, crossThickness);
-
-}
-
-void CusbCamConsoleDlg::OnBnClickedButtonExpoSet()
-{
-	OnBnClickedRadioCam1();
-	CString str;
-	GetDlgItemText(IDC_EDIT_EXPO, str);
-	int expo = _tstoi(str);
-	
-	mpls->setFunction(Func_Expo, expo);
-}
-
-
-void CusbCamConsoleDlg::OnBnClickedButtonCrossSet()
-{
-	OnBnClickedRadioCam1();
-	CString str;
-	GetDlgItemText(IDC_EDIT_THICK, str);
-	unsigned char crossThickness = _tstoi(str);
-	mpls->setCrossParam(0, 0, crossThickness);
-
-}
-
-void CusbCamConsoleDlg::OnBnClickedButtonSaveConfig2()
-{
-	
-	mpls->saveParams();
-	Sleep(2000); 
-	SetDlgItemText(IDC_STATIC_STATUS, L"保存成功");
-}
-
-
-void CusbCamConsoleDlg::OnBnClickedButtonLoadConfig()
-{
-	mpls->readParams();
-	SetDlgItemText(IDC_STATIC_STATUS, L"读取成功");
 }

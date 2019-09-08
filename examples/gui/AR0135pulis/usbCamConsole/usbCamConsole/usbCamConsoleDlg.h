@@ -20,8 +20,8 @@ enum PLSRegFunc
 {
 	Reg_SKIP,
 	Reg_Gain,
-	Reg_ROI_STEP,
 	Reg_ROI,
+	Reg_ROI_STEP,
 	Reg_SENSOR_SELECT,
 	Reg_SENSOR_REG1,
 	Reg_SENSOR_REG2,
@@ -104,17 +104,26 @@ struct RegSettingsStruct
 class SensorSettingClass
 {
 public:
-	int camNum;
 	int Gain;
 	int Skip;
 	CimgDrawCross imgDrawCross;
 	int zoom;
-	int dispPos;
 	int ROIStep;
 	int ROIposX;
 	int ROIposY;
 	int expo;
 	RegSettingsStruct regSettings;
+	SensorSettingClass()
+	{
+		Gain = 0;
+		Skip = 0;
+		zoom = 0;
+		ROIStep = 0;
+		ROIposX = 0;
+		ROIposY = 0;
+		expo = 0;
+	}
+
 };
 typedef int(*fp)(int);
 class PLSCameraClass
@@ -149,11 +158,19 @@ public:
 		funclist.push_back(&PLSCameraClass::setZoom);
 		funclist.push_back(&PLSCameraClass::setDispSlot);
 		funclist.push_back(&PLSCameraClass::setROI);
-		dispmtx.init(CameraNum);
+		
 
+	}
+	int init(int c)
+	{
+		dispmtx.init(CameraNum);
+		regSettings.s = CameraNum;
+		return CameraNum;
 	}
 	int setDispSlot(int s)
 	{
+		if (s == -1)
+			return dispmtx.dispslot;
 		dispmtx.dispslot = s;
 		return s;
 	}
@@ -169,30 +186,27 @@ public:
 		regSettings.value = sensorReg >> 8;
 		actCmd();
 
-
+		
 		regSettings.funcNum = Reg_SENSOR_REG2;
 		regSettings.value = sensorReg & 0xff;
 		actCmd();
-
-
+		
 		regSettings.funcNum = Reg_SENSOR_REG3;
 		regSettings.value = value >> 8;
 		actCmd();
-
 
 		regSettings.funcNum = Reg_SENSOR_REG4;
 		regSettings.value = value && 0xff;
 		actCmd();
 
-
 		regSettings.funcNum = Reg_SENSOR_SELECT;
-		regSettings.value = CameraNum + 1;
+		regSettings.value = sensor;
 		actCmd();
 		return 0;
 	}
 	int setROI(int roi)
 	{
-		int x, y;
+		int x=0,y=0;
 
 		switch (roi)
 		{
@@ -227,6 +241,8 @@ public:
 	{
 		if (step == -1)
 			step = sensorSettings.ROIStep;
+		if (sensorSettings.ROIStep == step)
+			return step;
 		sensorSettings.ROIStep = step;
 		regSettings.funcNum = Reg_ROI_STEP;
 		regSettings.value = step;
@@ -246,10 +262,10 @@ public:
 		switch (gain)
 		{
 		case 16://16
-			wrSensorCmd(CameraNum + 1, 0x305E, 0x2020);
+			wrSensorCmd(CameraNum+1, 0x305E, 0x2020);
 			break;
 		case 32://32
-			wrSensorCmd(CameraNum + 1, 0x305E, 0x2030);
+			wrSensorCmd(CameraNum+1, 0x305E, 0x2030);
 			break;
 		}
 		
@@ -283,6 +299,8 @@ public:
 	}
 	int setZoom(int zoom)
 	{
+		if (zoom == -1)
+			return zoom;
 		dispmtx.zoom = zoom;
 		return 0;
 	}
@@ -306,6 +324,7 @@ public:
 			mplsCam[i].CameraNum = i;
 			mplsCam[i].m_sensorInUse = m_sensorInUse;
 			mplsCam[i].checked = 0;
+			mplsCam[i].init(i);
 		}
 	}
 	int getSelectedCnt()
@@ -332,7 +351,6 @@ public:
 	{
 		for (int i = 0; i < 5; i++)
 		{
-			mplsCam[i].CameraNum = i + 10;
 
 			
 			ofstream outfile;
@@ -345,17 +363,15 @@ public:
 	{
 		for (int i = 0; i < 5; i++)
 		{
-			mplsCam[i].CameraNum = 0;
-
 			ifstream infile;
 			infile.open(saveFileName(i), ios::binary | ios::in);
 			infile.read((char*)&mplsCam[i],sizeof(PLSCameraClass));
 			
 			mplsCam[i].checked = 1;
 			
-			for (int i = Func_SKIP; i < Func_ROI; i++)
+			for (int k = Func_SKIP; k < Func_ROI; k++)
 			{
-				mplsCam[i].useFuncList(i, -1);
+				mplsCam[i].useFuncList(k, -1);
 				Sleep(100);
 			}
 
@@ -371,22 +387,33 @@ public:
 			//imgDrawCross.thickness[i] = 0;
 			if (mplsCam[i].checked == 1)
 			{
-				mplsCam[i].imgDrawCross.crossStep = crossStep;
 				mplsCam[i].imgDrawCross.thickness = crossThickness;
+				if (crossStep == 0)
+					continue;
+				mplsCam[i].imgDrawCross.crossStep = crossStep;
+				int x, y = 0;
 				switch (xy)
 				{
 				case 0:
-					mplsCam[i].imgDrawCross.point.x = mplsCam[i].imgDrawCross.point.x - crossStep;
-					break;
-				case 1:
-					mplsCam[i].imgDrawCross.point.x = mplsCam[i].imgDrawCross.point.x + crossStep;
+					x = mplsCam[i].imgDrawCross.point.x - crossStep;
 					break;
 				case 2:
-					mplsCam[i].imgDrawCross.point.y = mplsCam[i].imgDrawCross.point.y - crossStep;
+					x = mplsCam[i].imgDrawCross.point.x + crossStep;
+					break;
+				case 1:
+					y = mplsCam[i].imgDrawCross.point.y - crossStep;
 					break;
 				case 3:
-					mplsCam[i].imgDrawCross.point.y = mplsCam[i].imgDrawCross.point.y + crossStep;
+					y = mplsCam[i].imgDrawCross.point.y + crossStep;
 					break;
+				}
+				if (x > 0 && x < 640)
+				{
+					mplsCam[i].imgDrawCross.point.x = x;
+				}
+				if (y > 0 && y < 640)
+				{
+					mplsCam[i].imgDrawCross.point.y = y;
 				}
 			}
 		}

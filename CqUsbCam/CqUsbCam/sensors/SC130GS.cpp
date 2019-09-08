@@ -529,28 +529,11 @@ static tagSensor sensor_SC130GS=
 };
 */
 
-class PLSStruct
+struct RegSettingsStruct
 {
-public:
-	cq_uint32_t selectCam[5];
-	cq_uint32_t funcNum;
-	cq_uint32_t addr;
-	cq_uint32_t value;
-	cq_uint32_t s;
-	CCqUsbCam* m_sensorInUse;
-	void actCmd()
-	{
-		for (int i = 0; i < 5; i++)
-		{
-			if (selectCam[i] > 0)
-				m_sensorInUse->ArbitrFunc(this);
-		}
-		//memset(selectCam, 0, sizeof(cq_int32_t) * 5);
-		//funcNum = 0;
-		//addr = 0;
-		//value = 0;
-
-	}
+	int s;
+	int funcNum;
+	int value;
 };
 enum
 {
@@ -584,7 +567,7 @@ enum
 }PLSFuncAddr;
 static cq_int32_t SC130GS_ArbitrFunc(CCyUSBDevice *pUsbHandle,LPVOID arg)
 {
-	PLSStruct* plsparam = (PLSStruct*)arg;
+	RegSettingsStruct* plsparam = (RegSettingsStruct*)arg;
 	//SC130GS_WrFpgaReg(pUsbHandle, SELECT_CAM, plsparam->selectCam);
 	cq_uint32_t temp = plsparam->value;
 	int cameraPos = plsparam->s;

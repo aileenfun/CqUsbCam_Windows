@@ -122,7 +122,7 @@ cq_int32_t CDataCapture::Close()
 	m_bCapture=false;
 
     //pthread_mutex_lock(&m_mutexThread);
-	WaitForSingleObject(m_mutexThread, INFINITE);
+	WaitForSingleObject(m_mutexThread, 3000);
 
     if(m_pInputframe!=NULL)
     {

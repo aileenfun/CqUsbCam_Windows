@@ -97,7 +97,8 @@ cq_int32_t  CCqUsbCam::SelectSensor(string* pStrSensorName)
 
 cq_int32_t CCqUsbCam::OpenUSB(cq_uint32_t usbNum)
 {
-	m_pUsbHandle->Open(usbNum);
+	if (m_pUsbHandle->Open(usbNum) == 0)
+		return -1;
 	if(m_pUsbHandle->IsOpen())
 	{
 		m_pUsbHandle->ControlEndPt->Target = TGT_DEVICE;

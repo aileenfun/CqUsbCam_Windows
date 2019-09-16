@@ -12,7 +12,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include "afxwin.h"
 
-// CusbCamConsoleDlg ¶Ô»°¿ò
+
 class CusbCamConsoleDlg : public CDialogEx
 {
 private:
@@ -46,18 +46,12 @@ protected:
 	afx_msg void OnPaint();
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
-public:
-
-private:
 
 public:
 	afx_msg void OnBnClickedButtonOpenUsb();
-	afx_msg void OnBnClickedButtonInitSensor();
 	afx_msg void OnBnClickedButtonCloseUsb();
 	afx_msg void OnBnClickedButtonStopCap();
 	afx_msg void OnBnClickedButtonVedioCap();
-
-
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 private:
 
@@ -72,7 +66,7 @@ public:
 	afx_msg void OnBnClickedButtonRdSensor();
 	afx_msg void OnBnClickedButtonWrFpga();
 	afx_msg void OnBnClickedButtonRdFpga();
-	int str2hex(CString str);
+	unsigned int str2hex(CString str);
 	afx_msg void OnEnChangeEditFpgatrigFreq();
 	afx_msg void OnBnClickedButtonSoftTrig();
 	afx_msg void OnBnClickedRadioMirrorNormal();
@@ -98,4 +92,13 @@ public:
 	afx_msg void OnBnClickedRadioResolu640480Bin();
 	afx_msg BOOL OnDeviceChange(UINT nEventType, DWORD dwData );
 	afx_msg void OnClose();
+	afx_msg void OnCbnSelchangeCombo1();
+	CComboBox selectChannel;
+	CComboBox selectGenFunc;
+	CComboBox selectCamFunc;
+	afx_msg void OnBnClickedButtonCamFunc();
+	afx_msg void OnBnClickedButtonGenFunc();
+	void SetDlgText(int dlg, int v);
+	afx_msg void OnBnClickedButtonWrSen();
+	afx_msg void OnBnClickedCheckCam1();
 };

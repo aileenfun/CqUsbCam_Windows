@@ -7,6 +7,7 @@
 #include "usbCamConsoleDlg.h"
 #include "afxdialogex.h"
 
+#include "Pintai.h"
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -18,16 +19,56 @@ cq_uint8_t		g_byteResolutionType;
 
 HANDLE g_mutexDisp;
 HANDLE g_mutexTimer;
-
-
+int show_channel = 0;;
+int g_camsize = 3;
+byte* imgBuf = NULL;
+byte* imgBuf1 = NULL;
+byte* imgBuf2 = NULL;
+CCameraCtrl camctrl;
 void  Disp(LPVOID lpParam)
 {
 	int i = 0, j = 0, k = 0;
 	cq_uint8_t *pDataBuffer = (cq_uint8_t*)lpParam;
-	cv::Mat frame(g_iHeight, g_iWidth, (g_byteBitDepthNo==1? CV_8UC1: CV_16UC1) ,pDataBuffer);
+	int offset = 0;
+	if (imgBuf == NULL)
+	{
+		imgBuf = new byte[camctrl.cam[0].height * camctrl.cam[0].width];
+	}
+	if (imgBuf1 == NULL)
+	{
+		imgBuf1 = new byte[camctrl.cam[1].height * camctrl.cam[1].width];
+	}
+	if (imgBuf2 == NULL)
+	{
+		imgBuf2 = new byte[camctrl.cam[2].height * camctrl.cam[2].width];
+	}
+
+	offset = 0;
+	if (1)//camctrl.cam[0].mode == 1)
+	{
+		memcpy(imgBuf, pDataBuffer + offset, camctrl.cam[0].height * camctrl.cam[0].width);
+		offset += camctrl.cam[0].height * camctrl.cam[0].width;
+		cv::Mat frame(camctrl.cam[0].height, camctrl.cam[0].width, CV_8UC1, imgBuf);
+		cv::imshow("disp", frame);
+	}
 	
-	//WaitForSingleObject(g_mutexDisp, INFINITE); 
-	cv::imshow("disp",frame);
+	if (1)//camctrl.cam[1].mode == 1)
+	{
+		memcpy(imgBuf1, pDataBuffer + offset, camctrl.cam[1].height * camctrl.cam[1].width);
+		offset += camctrl.cam[1].height * camctrl.cam[1].width;
+		cv::Mat frame1(camctrl.cam[1].height, camctrl.cam[1].width, CV_8UC1, imgBuf1);
+		cv::imshow("cam1", frame1);
+	}
+
+	if (1)//camctrl.cam[2].mode == 1)
+	{
+		memcpy(imgBuf2, pDataBuffer + offset, camctrl.cam[2].height * camctrl.cam[2].width);
+		offset += camctrl.cam[2].height * camctrl.cam[2].width;
+		cv::Mat frame2(camctrl.cam[2].height, camctrl.cam[2].width, CV_8UC1, imgBuf2);
+		cv::imshow("cam2", frame2);
+	}
+
+	cv::waitKey(1);
 	//ReleaseMutex(g_mutexDisp);
 }
 // 用于应用程序“关于”菜单项的 CAboutDlg 对话框
@@ -61,10 +102,6 @@ BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
 END_MESSAGE_MAP()
 
 
-// CusbCamConsoleDlg 对话框
-
-
-
 
 CusbCamConsoleDlg::CusbCamConsoleDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(CusbCamConsoleDlg::IDD, pParent)
@@ -88,11 +125,11 @@ CusbCamConsoleDlg::CusbCamConsoleDlg(CWnd* pParent /*=NULL*/)
 	g_mutexTimer = CreateMutex(NULL, FALSE, NULL);
 
 	g_iWidth=1280;
-	g_iHeight=720;
+	g_iHeight=960*3;
 	g_byteBitDepthNo=1;
 	m_bIsCapturing = false;
 
-
+	camctrl.init(m_sensorInUse);
 }
 CusbCamConsoleDlg::~CusbCamConsoleDlg()
 {
@@ -105,7 +142,9 @@ void CusbCamConsoleDlg::DoDataExchange(CDataExchange* pDX)
 	CDialogEx::DoDataExchange(pDX);
 
 	DDX_Control(pDX, IDC_CHECK_AUTOGAIN, cbAutoGain);
-	DDX_Control(pDX, IDC_CHECK_AUTO_EXPO, cbAutoExpo);
+	DDX_Control(pDX, IDC_COMBO1, selectChannel);
+	DDX_Control(pDX, IDC_FUNC_GENERAL, selectGenFunc);
+	DDX_Control(pDX, IDC_FUNC_CAM, selectCamFunc);
 }
 
 BEGIN_MESSAGE_MAP(CusbCamConsoleDlg, CDialogEx)
@@ -113,7 +152,6 @@ BEGIN_MESSAGE_MAP(CusbCamConsoleDlg, CDialogEx)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
 	ON_BN_CLICKED(IDC_BUTTON_OPEN_USB, &CusbCamConsoleDlg::OnBnClickedButtonOpenUsb)
-	ON_BN_CLICKED(IDC_BUTTON_INIT_SENSOR, &CusbCamConsoleDlg::OnBnClickedButtonInitSensor)
 	ON_BN_CLICKED(IDC_BUTTON_CLOSE_USB, &CusbCamConsoleDlg::OnBnClickedButtonCloseUsb)
 	ON_BN_CLICKED(IDC_BUTTON_STOP_CAP, &CusbCamConsoleDlg::OnBnClickedButtonStopCap)
 	ON_BN_CLICKED(IDC_BUTTON_VEDIO_CAP, &CusbCamConsoleDlg::OnBnClickedButtonVedioCap)
@@ -123,8 +161,6 @@ BEGIN_MESSAGE_MAP(CusbCamConsoleDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_RADIO_TRIGMODE_FPGA, &CusbCamConsoleDlg::OnBnClickedRadioTrigmodeFpga)
 	ON_BN_CLICKED(IDC_RADIO_TRIGMODE_SOFT, &CusbCamConsoleDlg::OnBnClickedRadioTrigmodeSoft)
 	ON_BN_CLICKED(IDC_RADIO_TRIGMODE_EXT, &CusbCamConsoleDlg::OnBnClickedRadioTrigmodeExt)
-	ON_BN_CLICKED(IDC_BUTTON_WR_SENSOR, &CusbCamConsoleDlg::OnBnClickedButtonWrSensor)
-	ON_BN_CLICKED(IDC_BUTTON_RD_SENSOR, &CusbCamConsoleDlg::OnBnClickedButtonRdSensor)
 	ON_BN_CLICKED(IDC_BUTTON_WR_FPGA, &CusbCamConsoleDlg::OnBnClickedButtonWrFpga)
 	ON_BN_CLICKED(IDC_BUTTON_RD_FPGA, &CusbCamConsoleDlg::OnBnClickedButtonRdFpga)
 	ON_EN_CHANGE(IDC_EDIT_FPGATRIG_FREQ, &CusbCamConsoleDlg::OnEnChangeEditFpgatrigFreq)
@@ -134,19 +170,19 @@ BEGIN_MESSAGE_MAP(CusbCamConsoleDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_RADIO_MIRROR_Y, &CusbCamConsoleDlg::OnBnClickedRadioMirrorY)
 	ON_BN_CLICKED(IDC_RADIO_MIRROR_XY, &CusbCamConsoleDlg::OnBnClickedRadioMirrorXy)
 	ON_BN_CLICKED(IDC_CHECK_AUTOGAIN, &CusbCamConsoleDlg::setAutoGainExpo)
-	ON_EN_CHANGE(IDC_EDIT_GAIN_VALUE, &CusbCamConsoleDlg::OnEnChangeEditGainValue)
-	ON_BN_CLICKED(IDC_CHECK_AUTO_EXPO, &CusbCamConsoleDlg::setAutoGainExpo)
-	ON_EN_CHANGE(IDC_EDIT_EXPO_VALUE, &CusbCamConsoleDlg::OnEnChangeEditExpoValue)
 	ON_BN_CLICKED(IDC_BUTTON_CHECK_SPEED, &CusbCamConsoleDlg::OnBnClickedButtonCheckSpeed)
-	ON_BN_CLICKED(IDC_BUTTON_WR_EEPROM, &CusbCamConsoleDlg::OnBnClickedButtonWrEeprom)
-	ON_BN_CLICKED(IDC_BUTTON_RD_EEPROM, &CusbCamConsoleDlg::OnBnClickedButtonRdEeprom)
 	ON_BN_CLICKED(IDC_BUTTON_RD_DEV_ID, &CusbCamConsoleDlg::OnBnClickedButtonRdDevId)
 	ON_BN_CLICKED(IDC_BUTTON_WR_DEV_ID, &CusbCamConsoleDlg::OnBnClickedButtonWrDevId)
 	ON_BN_CLICKED(IDC_BUTTON_RD_DEV_SN, &CusbCamConsoleDlg::OnBnClickedButtonRdDevSn)
 	ON_BN_CLICKED(IDC_BUTTON_WR_DEV_SN, &CusbCamConsoleDlg::OnBnClickedButtonWrDevSn)
-	ON_BN_CLICKED(IDC_RADIO_RESOLU_1280_960, &CusbCamConsoleDlg::OnBnClickedRadioResolu1280960)
-	ON_BN_CLICKED(IDC_RADIO_RESOLU_640_480_SKIP, &CusbCamConsoleDlg::OnBnClickedRadioResolu640480Skip)
-	ON_BN_CLICKED(IDC_RADIO_RESOLU_640_480_BIN, &CusbCamConsoleDlg::OnBnClickedRadioResolu640480Bin)
+	ON_CBN_SELCHANGE(IDC_COMBO1, &CusbCamConsoleDlg::OnCbnSelchangeCombo1)
+	ON_BN_CLICKED(IDC_BUTTON_CAM_FUNC, &CusbCamConsoleDlg::OnBnClickedButtonCamFunc)
+	ON_BN_CLICKED(IDC_BUTTON_GEN_FUNC, &CusbCamConsoleDlg::OnBnClickedButtonGenFunc)
+	ON_BN_CLICKED(IDC_BUTTON_WR_SEN, &CusbCamConsoleDlg::OnBnClickedButtonWrSen)
+	/*ON_BN_CLICKED(IDC_CHECK_CAM1, &CusbCamConsoleDlg::OnBnClickedCheckCam1)
+	ON_BN_CLICKED(IDC_CHECK_CAM2, &CusbCamConsoleDlg::OnBnClickedCheckCam1)
+	ON_BN_CLICKED(IDC_CHECK_CAM3, &CusbCamConsoleDlg::OnBnClickedCheckCam1)*/
+
 
 	ON_WM_DEVICECHANGE()
 	ON_WM_CLOSE()
@@ -185,7 +221,40 @@ BOOL CusbCamConsoleDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
 	// TODO: 在此添加额外的初始化代码
+	selectChannel.InsertString(0, _T("0"));
+	selectChannel.InsertString(1, _T("1"));
+	selectChannel.InsertString(2, _T("2"));
+	int j = 0;
+	selectGenFunc.InsertString(j++, _T("Motor(0,1)"));
+	selectGenFunc.InsertString(j++, _T("Fan(0,1)"));
+	selectGenFunc.InsertString(j++, _T("IO_0(0,1)"));
+	selectGenFunc.InsertString(j++, _T("CamMode(0~3)"));
+	selectGenFunc.InsertString(j++, _T("CamCnt(0~6)"));
+	selectGenFunc.InsertString(j++, _T("T1(0~1000)"));
+	selectGenFunc.InsertString(j++, _T("T2(0~1000)"));
+	selectGenFunc.InsertString(j++, _T("T3(0~1000)"));
+	selectGenFunc.InsertString(j++, _T("T4(0~1000)"));
+	selectGenFunc.InsertString(j++, _T("T5(0~1000)"));
+	
+	j = 0;
+	selectCamFunc.InsertString(j++, _T("ROI_Y_Start(0~959"));
+	selectCamFunc.InsertString(j++, _T("ROI_X_Start(0~1279"));
+	selectCamFunc.InsertString(j++, _T("ROI_Y_End(0~959"));
+	selectCamFunc.InsertString(j++, _T("ROI_Y_Start(0~1279"));
+	selectCamFunc.InsertString(j++, _T("Auto Gain(0,2"));
+	selectCamFunc.InsertString(j++, _T("Expo(0~65535)"));
+	selectCamFunc.InsertString(j++, _T("GainF(0~255)"));
+	selectCamFunc.InsertString(j++, _T("GainG1(0~255)"));
+	selectCamFunc.InsertString(j++, _T("GainB(0~255)"));
+	selectCamFunc.InsertString(j++, _T("GainR(0~255)"));
+	selectCamFunc.InsertString(j++, _T("GainG2(0~255)"));
+	selectCamFunc.InsertString(j++, _T("Mirror(0,4,8,12)"));
+	selectCamFunc.InsertString(j++, _T("Analog Gain(1,2,4,8)"));
+	selectCamFunc.InsertString(j++, _T("PWM(0~100)"));
 
+	/*((CButton*)GetDlgItem(IDC_CHECK_CAM1))->SetCheck(1);
+	((CButton*)GetDlgItem(IDC_CHECK_CAM2))->SetCheck(1);
+	((CButton*)GetDlgItem(IDC_CHECK_CAM3))->SetCheck(1);*/
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
 
@@ -256,18 +325,6 @@ void CusbCamConsoleDlg::OnBnClickedButtonOpenUsb()
 }
 
 
-void CusbCamConsoleDlg::OnBnClickedButtonInitSensor()
-{
-	// TODO: 在此添加控件通知处理程序代码
-	if (!m_bUsbOpen)
-	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USB未打开。");
-		return;
-	}
-	m_sensorInUse->InitSensor();
-	SetDlgItemText(IDC_STATIC_STATUS, L"初始化sensor成功。");
-}
-
 
 void CusbCamConsoleDlg::OnBnClickedButtonCloseUsb()
 {
@@ -317,7 +374,21 @@ void CusbCamConsoleDlg::OnBnClickedButtonStopCap()
 #endif
 	m_bIsCapturing = false;
 	SetDlgItemText(IDC_STATIC_STATUS, L"停止采集。");
-
+	if (imgBuf != NULL)
+	{
+		delete imgBuf;
+		imgBuf = NULL;
+	}
+	if (imgBuf1 != NULL)
+	{
+		delete imgBuf1;
+		imgBuf1 = NULL;
+	}
+	if (imgBuf2 != NULL)
+	{
+		delete imgBuf2;
+		imgBuf2 = NULL;
+	}
 	//h_vw.release();
 }
 
@@ -347,15 +418,17 @@ void CusbCamConsoleDlg::OnBnClickedButtonVedioCap()
 #endif
 
 	cv::namedWindow("disp");
+	cv::namedWindow("cam1");
+	cv::namedWindow("cam2");
 	HWND hWnd = (HWND)cvGetWindowHandle("disp");//获取子窗口的HWND
 	HWND hParentWnd = ::GetParent(hWnd);//获取父窗口HWND。父窗口是我们要用的
 	 //隐藏窗口标题栏 
 	long style = GetWindowLong(hParentWnd, GWL_STYLE);
 	style &= ~(WS_SYSMENU);
 	SetWindowLong(hParentWnd, GWL_STYLE, style);
+	
 
-
-	if(m_sensorInUse->StartCap(g_iHeight, (g_byteBitDepthNo == 1 ? g_iWidth : g_iWidth * 2), Disp)<0)
+	if(m_sensorInUse->StartCap(camctrl.getTotalDataLen() , 1, Disp)<0)
 	{
 		SetDlgItemText(IDC_STATIC_STATUS, L"USB设备打开失败！");
 #if 0
@@ -616,10 +689,12 @@ void CusbCamConsoleDlg::OnBnClickedButtonWrFpga()
 	GetDlgItemText(IDC_EDIT_FPGA_REGISTER_ADDR, strAddr);
 	GetDlgItemText(IDC_EDIT_FPGA_REGISTER_VALUE, strValue);
 
-	unsigned char iAddr = str2hex(strAddr);
-	unsigned char iValue = str2hex(strValue);
+	unsigned long iAddr = str2hex(strAddr);
+	unsigned long iValue = str2hex(strValue);
 
-	(m_bIsCamSelected ? m_sensorInUse->WrFpgaReg(iAddr, iValue) : NULL);
+	//(m_bIsCamSelected ? m_sensorInUse->WrFpgaReg(iAddr, iValue) : NULL);
+	camctrl.cam[0].wrCamCmd(iAddr, iValue);
+
 }
 
 
@@ -641,7 +716,7 @@ void CusbCamConsoleDlg::OnBnClickedButtonRdFpga()
 	SetDlgItemText(IDC_EDIT_FPGA_REGISTER_VALUE, s_temp);
 
 }
-int CusbCamConsoleDlg::str2hex(CString str)
+unsigned int CusbCamConsoleDlg::str2hex(CString str)
 {
 	int nLength = str.GetLength();
 	int nBytes = WideCharToMultiByte(CP_ACP, 0, str, nLength, NULL, 0, NULL, NULL);
@@ -649,7 +724,7 @@ int CusbCamConsoleDlg::str2hex(CString str)
 	memset(p, 0, nLength + 1);
 	WideCharToMultiByte(CP_OEMCP, 0, str, nLength, p, nBytes, NULL, NULL);
 	p[nBytes] = 0;
-	int a;
+	unsigned int a;
 	sscanf(p, "%x", &a);
 	delete[] p;
 	return a;
@@ -698,148 +773,67 @@ void CusbCamConsoleDlg::OnBnClickedButtonSoftTrig()
 	SetDlgItemText(IDC_STATIC_STATUS, L"Soft触发。");
 }
 
-
+void  CusbCamConsoleDlg::SetDlgText(int dlg,int v)
+{
+	CString temp;
+	temp.Format(_T("%d"), v);
+	SetDlgItemText(dlg, temp);
+}
 void CusbCamConsoleDlg::OnBnClickedRadioMirrorNormal()
 {
-	// TODO: 在此添加控件通知处理程序代码
-	if (!m_bUsbOpen)
-	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USB未打开。");
-		return;
-	}
-	(m_bIsCamSelected ? m_sensorInUse->SetMirrorType(MIRROR_NORMAL) : NULL);
+
+	SetDlgText(IDC_EDIT_SENSOR_REGISTER_VALUE, 0);
 }
 
 
 void CusbCamConsoleDlg::OnBnClickedRadioMirrorX()
 {
-	// TODO: 在此添加控件通知处理程序代码
-	if (!m_bUsbOpen)
-	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USB未打开。");
-		return;
-	}
-	(m_bIsCamSelected ? m_sensorInUse->SetMirrorType(MIRROR_X) : NULL);
+
+	SetDlgText(IDC_EDIT_SENSOR_REGISTER_VALUE, 4);
 }
 
 
 void CusbCamConsoleDlg::OnBnClickedRadioMirrorY()
 {
-	// TODO: 在此添加控件通知处理程序代码
-	if (!m_bUsbOpen)
-	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USB未打开。");
-		return;
-	}
-	(m_bIsCamSelected ? m_sensorInUse->SetMirrorType(MIRROR_Y) : NULL);
+	SetDlgText(IDC_EDIT_SENSOR_REGISTER_VALUE, 8);
 }
 
 
 void CusbCamConsoleDlg::OnBnClickedRadioMirrorXy()
 {
-	// TODO: 在此添加控件通知处理程序代码
-	if (!m_bUsbOpen)
-	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USB未打开。");
-		return;
-	}
-	(m_bIsCamSelected ? m_sensorInUse->SetMirrorType(MIRROR_XY) : NULL);
+
+	SetDlgText(IDC_EDIT_SENSOR_REGISTER_VALUE, 0x0C);
 }
 
 
 void CusbCamConsoleDlg::setAutoGainExpo()
 {
-	if (!m_bUsbOpen)
+	int agae = 0;	
+	if ((cbAutoGain.GetCheck() == true))
 	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USB未打开。");
-		return;
-	}
-
-	if ((cbAutoGain.GetCheck() == true) && (cbAutoExpo.GetCheck() == true))
-	{
-		(m_bIsCamSelected ? m_sensorInUse->SetAutoGainExpo(true, true) : NULL);
-		SetDlgItemText(IDC_STATIC_STATUS, L"自动增益，自动曝光。");
-	}	
-	else if ((cbAutoGain.GetCheck() == true) && (cbAutoExpo.GetCheck() == false))
-	{
-		(m_bIsCamSelected ? m_sensorInUse->SetAutoGainExpo(true, false) : NULL);
+		agae = 2;
+	//	(m_bIsCamSelected ? m_sensorInUse->SetAutoGainExpo(true, false) : NULL);
 		SetDlgItemText(IDC_STATIC_STATUS, L"自动增益，手动曝光。");
 	}
-	else if ((cbAutoGain.GetCheck() == false) && (cbAutoExpo.GetCheck() == true))
+	else if ((cbAutoGain.GetCheck() == false))
 	{
-		(m_bIsCamSelected ? m_sensorInUse->SetAutoGainExpo(false, true) : NULL);
-		SetDlgItemText(IDC_STATIC_STATUS, L"手动增益，自动曝光。");
-	}
-	else if ((cbAutoGain.GetCheck() == false) && (cbAutoExpo.GetCheck() == false))
-	{
-		(m_bIsCamSelected ? m_sensorInUse->SetAutoGainExpo(false, false) : NULL);
+		agae = 0;
+//		(m_bIsCamSelected ? m_sensorInUse->SetAutoGainExpo(false, false) : NULL);
 		SetDlgItemText(IDC_STATIC_STATUS, L"手动增益，手动曝光。");
 	}
 	else;
+	CString temp;
+	temp.Format(_T("%d"), agae);
+	SetDlgItemText(IDC_EDIT_SENSOR_REGISTER_VALUE,temp);
+	//camctrl.setCamFunction(Func_SetAGAE, agae);
+
 }
 
 
 
 
-void CusbCamConsoleDlg::OnEnChangeEditGainValue()
-{
-	// TODO:  如果该控件是 RICHEDIT 控件，它将不
-	// 发送此通知，除非重写 CDialogEx::OnInitDialog()
-	// 函数并调用 CRichEditCtrl().SetEventMask()，
-	// 同时将 ENM_CHANGE 标志“或”运算到掩码中。
-
-	// TODO:  在此添加控件通知处理程序代码
-	if (!m_bUsbOpen)
-	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USB未打开。");
-		return;
-	}
-	
-	CString str;
-	GetDlgItemText(IDC_EDIT_GAIN_VALUE ,str);
-	unsigned short GainValue= _tstoi(str);
-	str.ReleaseBuffer();
-
-	if(GainValue>0)
-	{
-		(m_bIsCamSelected ? m_sensorInUse->SetGainValue(GainValue & 0xffff) : NULL);
-		SetDlgItemText(IDC_STATIC_STATUS, L"增益值设定成功。");
-	}
-	else
-	{
-		SetDlgItemText(IDC_STATIC_STATUS,L"Check Gain?");
-	}
-}
 
 
-void CusbCamConsoleDlg::OnEnChangeEditExpoValue()
-{
-	// TODO:  如果该控件是 RICHEDIT 控件，它将不
-	// 发送此通知，除非重写 CDialogEx::OnInitDialog()
-	// 函数并调用 CRichEditCtrl().SetEventMask()，
-	// 同时将 ENM_CHANGE 标志“或”运算到掩码中。
-
-	// TODO:  在此添加控件通知处理程序代码
-	if (!m_bUsbOpen)
-	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USB未打开。");
-		return;
-	}
-	
-	CString str;
-	GetDlgItemText(IDC_EDIT_EXPO_VALUE ,str);
-	unsigned short ExpoValue= _tstoi(str);
-	str.ReleaseBuffer();
-	if(/*cbAutoExpo.GetCheck()==false&&*/ExpoValue>0)
-	{
-		(m_bIsCamSelected ? m_sensorInUse->SetExpoValue(ExpoValue) : NULL);
-		SetDlgItemText(IDC_STATIC_STATUS, L"曝光值设定成功。");
-	}
-	else
-	{
-		SetDlgItemText(IDC_STATIC_STATUS,L"Check Expo?");
-	}
-}
 
 
 void CusbCamConsoleDlg::OnBnClickedButtonCheckSpeed()
@@ -1021,7 +1015,75 @@ BOOL CusbCamConsoleDlg::OnDeviceChange( UINT nEventType, DWORD dwData )
 
 void CusbCamConsoleDlg::OnClose()
 {
-	// TODO: 在此添加消息处理程序代码和/或调用默认值
 	OnBnClickedButtonStopCap();
 	CDialogEx::OnClose();
+}
+
+
+void CusbCamConsoleDlg::OnCbnSelchangeCombo1()
+{
+	
+	for (int i = 0; i < 3; i++)
+	{
+		camctrl.cam[i].checked = 0;
+	}
+	show_channel = selectChannel.GetCurSel();
+	camctrl.cam[show_channel].checked = 1;
+}
+
+
+void CusbCamConsoleDlg::OnBnClickedButtonCamFunc()
+{
+	OnCbnSelchangeCombo1();
+	int camfunc = selectCamFunc.GetCurSel();
+	CString str;
+	GetDlgItemText(IDC_EDIT_SENSOR_REGISTER_VALUE, str);
+	int v = _tstoi(str);
+	if (v >=0)
+	{
+		camctrl.setCamFunction(camfunc, v);
+	}
+}
+
+
+void CusbCamConsoleDlg::OnBnClickedButtonGenFunc()
+{
+	OnCbnSelchangeCombo1();
+	int genfunc = selectGenFunc.GetCurSel();
+	CString str;
+	GetDlgItemText(IDC_EDIT_SENSOR_REGISTER_ADDR, str);
+	int v = _tstoi(str);
+	if (v >= 0)
+	{
+		camctrl.setGenFunction(genfunc, v);
+	}
+}
+
+
+void CusbCamConsoleDlg::OnBnClickedButtonWrSen()
+{
+	OnCbnSelchangeCombo1();
+	CString strAddr, strValue;
+
+	GetDlgItemText(IDC_EDIT_SENSOR_REGISTER_ADDR, strAddr);
+	GetDlgItemText(IDC_EDIT_SENSOR_REGISTER_VALUE, strValue);
+
+	unsigned short iAddr = str2hex(strAddr);
+	unsigned short iValue = str2hex(strValue);
+	int temp = iAddr << 16 + iValue;
+	camctrl.wrCamCmd(0x33bb011f, temp);
+}
+
+
+void CusbCamConsoleDlg::OnBnClickedCheckCam1()
+{
+	for (int i = 0; i < 3; i++)
+	{
+		camctrl.cam[i].mode = 0;
+		if (((CButton*)GetDlgItem(IDC_CHECK_CAM1+i))->GetCheck() == 1)
+		{
+			camctrl.cam[i].mode = 1;
+		}
+	}
+	
 }

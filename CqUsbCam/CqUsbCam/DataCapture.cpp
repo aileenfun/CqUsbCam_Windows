@@ -20,8 +20,6 @@
 #include <stdio.h>
 #include "Types.h"
 
-
-
 CDataCapture::CDataCapture(const cq_uint32_t iWidth, const cq_uint32_t iHeight)
 {
 
@@ -170,13 +168,23 @@ int CDataCapture::ThreadFunc()
 	while (true==m_bCapture)
 	{
 		transferred=m_iWidth*m_iHeight+512;
+		//if (transferred > 1048576)
+			//transferred = 1048576;
+		//if (transferred > 2097152)
+			//transferred = 2097152;
+		//if (transferred > 3145728)
+			//transferred = 3145728;
 		ReadData(m_pReadBuff,transferred);
+
         if(transferred>0)
 		{
+			//cv::Mat frame(m_iHeight, m_iWidth, CV_8UC1, m_pReadBuff);
+			//cv::imshow("disp1", frame);
+			//cv::waitKey(1);
 		    Input(m_pReadBuff,transferred);
 		    m_lRecvByteCnt+=transferred;
 		}
-		Sleep(1);//deleted by qbc
+		//Sleep(1);//deleted by qbc
 	}
 	ReleaseMutex(m_mutexThread);
 	return 0;
@@ -184,18 +192,19 @@ int CDataCapture::ThreadFunc()
 }
 cq_int32_t CDataCapture::ReadData( cq_uint8_t* pbuff, cq_int64_t &lBytes )
 {
+	int temp = 0;
 	if(m_pUsbHandle->IsOpen())
 	{
 		if(m_pUsbHandle->BulkInEndPt->GetXferSize()<lBytes)
 		{
 			m_pUsbHandle->BulkInEndPt->SetXferSize(lBytes);
 		}
-		if(m_pUsbHandle->BulkInEndPt->XferData((PUCHAR)pbuff,lBytes))
+		if(temp=m_pUsbHandle->BulkInEndPt->XferData((PUCHAR)pbuff,lBytes))
 		{
 			return 0;
 		}
 	}
-	return -1;
+	return temp;
 }
 //#define _USE55AA
 cq_int32_t CDataCapture::Input(const cq_uint8_t* lpData, const cq_uint32_t dwSize )
@@ -262,11 +271,13 @@ cq_int32_t CDataCapture::Input(const cq_uint8_t* lpData, const cq_uint32_t dwSiz
 
         if(m_pInData[i]==0x33&&m_pInData[i+1]==0xcc&&m_pInData[i+14]==0x22&&m_pInData[i+15]==0xdd&&b_header==false)
         {
+			m_pInputframe->m_camNum = m_pInData[4];
             i=i+16;
-            memcpy(m_pOutData,m_pInData+i,datalen);          
+           // memcpy(m_pOutData,m_pInData+i,datalen);
+            //memcpy(m_pInputframe->m_imgBuf,m_pOutData,m_iWidth*m_iHeight);
+			
 
-            memcpy(m_pInputframe->m_imgBuf,m_pOutData,m_iWidth*m_iHeight);
-
+			memcpy(m_pInputframe->m_imgBuf, m_pInData + i, m_iWidth * m_iHeight);
             m_pImgQueue->add(m_pInputframe);
 
             m_lRecvFrameCnt++;

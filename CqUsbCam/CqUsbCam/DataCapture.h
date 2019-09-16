@@ -88,19 +88,6 @@ public:
 };
  	
  	
- 	
- 	
- 	
- 	
- 	
- 
-
- 
- 
- 
- 
- 
- 
  
  
  #endif // _DATACAPTURE_H_

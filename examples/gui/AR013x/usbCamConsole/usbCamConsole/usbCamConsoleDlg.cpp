@@ -88,7 +88,7 @@ CusbCamConsoleDlg::CusbCamConsoleDlg(CWnd* pParent /*=NULL*/)
 	g_mutexTimer = CreateMutex(NULL, FALSE, NULL);
 
 	g_iWidth=1280;
-	g_iHeight=720;
+	g_iHeight=720*3;
 	g_byteBitDepthNo=1;
 	m_bIsCapturing = false;
 
@@ -264,7 +264,7 @@ void CusbCamConsoleDlg::OnBnClickedButtonInitSensor()
 		SetDlgItemText(IDC_STATIC_STATUS, L"USB未打开。");
 		return;
 	}
-	m_sensorInUse->InitSensor();
+	//m_sensorInUse->InitSensor();
 	SetDlgItemText(IDC_STATIC_STATUS, L"初始化sensor成功。");
 }
 

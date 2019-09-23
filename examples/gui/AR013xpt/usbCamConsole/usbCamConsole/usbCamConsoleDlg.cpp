@@ -17,6 +17,7 @@ cq_uint32_t     g_iHeight;
 cq_uint8_t		g_byteBitDepthNo;
 cq_uint8_t		g_byteResolutionType;
 
+int savefile = 0;
 HANDLE g_mutexDisp;
 HANDLE g_mutexTimer;
 int show_channel = 0;;
@@ -50,6 +51,10 @@ void  Disp(LPVOID lpParam)
 		offset += camctrl.cam[0].height * camctrl.cam[0].width;
 		cv::Mat frame(camctrl.cam[0].height, camctrl.cam[0].width, CV_8UC1, imgBuf);
 		cv::imshow("disp", frame);
+		if (savefile)
+		{
+			cv::imwrite("snap1.jpg", frame);
+		}
 	}
 	
 	if (1)//camctrl.cam[1].mode == 1)
@@ -58,6 +63,10 @@ void  Disp(LPVOID lpParam)
 		offset += camctrl.cam[1].height * camctrl.cam[1].width;
 		cv::Mat frame1(camctrl.cam[1].height, camctrl.cam[1].width, CV_8UC1, imgBuf1);
 		cv::imshow("cam1", frame1);
+		if (savefile)
+		{
+			cv::imwrite("snap2.jpg", frame1);
+		}
 	}
 
 	if (1)//camctrl.cam[2].mode == 1)
@@ -66,9 +75,14 @@ void  Disp(LPVOID lpParam)
 		offset += camctrl.cam[2].height * camctrl.cam[2].width;
 		cv::Mat frame2(camctrl.cam[2].height, camctrl.cam[2].width, CV_8UC1, imgBuf2);
 		cv::imshow("cam2", frame2);
+		if (savefile)
+		{
+			cv::imwrite("snap3.jpg", frame2);
+		}
 	}
-
+	savefile = 0;
 	cv::waitKey(1);
+
 	//ReleaseMutex(g_mutexDisp);
 }
 // 用于应用程序“关于”菜单项的 CAboutDlg 对话框
@@ -82,7 +96,7 @@ public:
 	enum { IDD = IDD_ABOUTBOX };
 
 	protected:
-	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 支持
+	virtual void DoDataExchange(CDataExchange* pDX);    
 
 // 实现
 protected:
@@ -170,7 +184,6 @@ BEGIN_MESSAGE_MAP(CusbCamConsoleDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_RADIO_MIRROR_Y, &CusbCamConsoleDlg::OnBnClickedRadioMirrorY)
 	ON_BN_CLICKED(IDC_RADIO_MIRROR_XY, &CusbCamConsoleDlg::OnBnClickedRadioMirrorXy)
 	ON_BN_CLICKED(IDC_CHECK_AUTOGAIN, &CusbCamConsoleDlg::setAutoGainExpo)
-	ON_BN_CLICKED(IDC_BUTTON_CHECK_SPEED, &CusbCamConsoleDlg::OnBnClickedButtonCheckSpeed)
 	ON_BN_CLICKED(IDC_BUTTON_RD_DEV_ID, &CusbCamConsoleDlg::OnBnClickedButtonRdDevId)
 	ON_BN_CLICKED(IDC_BUTTON_WR_DEV_ID, &CusbCamConsoleDlg::OnBnClickedButtonWrDevId)
 	ON_BN_CLICKED(IDC_BUTTON_RD_DEV_SN, &CusbCamConsoleDlg::OnBnClickedButtonRdDevSn)
@@ -186,6 +199,7 @@ BEGIN_MESSAGE_MAP(CusbCamConsoleDlg, CDialogEx)
 
 	ON_WM_DEVICECHANGE()
 	ON_WM_CLOSE()
+	ON_BN_CLICKED(IDC_BUTTON_SAVE, &CusbCamConsoleDlg::OnBnClickedButtonSave)
 END_MESSAGE_MAP()
 
 
@@ -240,7 +254,7 @@ BOOL CusbCamConsoleDlg::OnInitDialog()
 	selectCamFunc.InsertString(j++, _T("ROI_Y_Start(0~959"));
 	selectCamFunc.InsertString(j++, _T("ROI_X_Start(0~1279"));
 	selectCamFunc.InsertString(j++, _T("ROI_Y_End(0~959"));
-	selectCamFunc.InsertString(j++, _T("ROI_Y_Start(0~1279"));
+	selectCamFunc.InsertString(j++, _T("ROI_X_End(0~1279"));
 	selectCamFunc.InsertString(j++, _T("Auto Gain(0,2"));
 	selectCamFunc.InsertString(j++, _T("Expo(0~65535)"));
 	selectCamFunc.InsertString(j++, _T("GainF(0~255)"));
@@ -322,6 +336,27 @@ void CusbCamConsoleDlg::OnBnClickedButtonOpenUsb()
 
 	SetDlgItemText(IDC_STATIC_STATUS, L"打开USB成功。");
 	m_bUsbOpen = true;
+
+
+	unsigned int speed = 0;
+	m_sensorInUse->GetUsbSpeed(speed);
+	if (speed == USB_SPEED_SUPER)
+	{
+		CString str("USB 3.0 device found");
+		SetDlgItemText(IDC_STATIC_STATUS, str);
+		m_sensorInUse->SendUsbSpeed2Fpga(USB_SPEED_SUPER);
+	}
+	else if (speed == USB_SPEED_HIGH)
+	{
+		CString str("USB 2.0 device found");
+		SetDlgItemText(IDC_STATIC_STATUS, str);
+		m_sensorInUse->SendUsbSpeed2Fpga(USB_SPEED_HIGH);
+	}
+	else
+	{
+		CString str("Unknown USB speed");
+		SetDlgItemText(IDC_STATIC_STATUS, str);
+	}
 }
 
 
@@ -358,6 +393,8 @@ void CusbCamConsoleDlg::OnBnClickedButtonStopCap()
 	}
 	WaitForSingleObject(g_mutexDisp, INFINITE);
 	cv::destroyWindow("disp");
+	cv::destroyWindow("cam1");
+	cv::destroyWindow("cam2");
 	ReleaseMutex(g_mutexDisp);
 
 #if 0
@@ -426,7 +463,7 @@ void CusbCamConsoleDlg::OnBnClickedButtonVedioCap()
 	long style = GetWindowLong(hParentWnd, GWL_STYLE);
 	style &= ~(WS_SYSMENU);
 	SetWindowLong(hParentWnd, GWL_STYLE, style);
-	
+	camctrl.getAllRes();
 
 	if(m_sensorInUse->StartCap(camctrl.getTotalDataLen() , 1, Disp)<0)
 	{
@@ -781,28 +818,29 @@ void  CusbCamConsoleDlg::SetDlgText(int dlg,int v)
 }
 void CusbCamConsoleDlg::OnBnClickedRadioMirrorNormal()
 {
-
+	
 	SetDlgText(IDC_EDIT_SENSOR_REGISTER_VALUE, 0);
 }
 
 
 void CusbCamConsoleDlg::OnBnClickedRadioMirrorX()
 {
-
-	SetDlgText(IDC_EDIT_SENSOR_REGISTER_VALUE, 4);
+	cq_uint32_t v = 0x40 << 8;	
+	SetDlgText(IDC_EDIT_SENSOR_REGISTER_VALUE,v );
 }
 
 
 void CusbCamConsoleDlg::OnBnClickedRadioMirrorY()
 {
-	SetDlgText(IDC_EDIT_SENSOR_REGISTER_VALUE, 8);
+	cq_uint32_t v = 0x80 << 8;
+	SetDlgText(IDC_EDIT_SENSOR_REGISTER_VALUE,v );
 }
 
 
 void CusbCamConsoleDlg::OnBnClickedRadioMirrorXy()
 {
-
-	SetDlgText(IDC_EDIT_SENSOR_REGISTER_VALUE, 0x0C);
+	cq_uint32_t v = 0xC0 << 8;
+	SetDlgText(IDC_EDIT_SENSOR_REGISTER_VALUE, v);
 }
 
 
@@ -830,42 +868,6 @@ void CusbCamConsoleDlg::setAutoGainExpo()
 }
 
 
-
-
-
-
-
-
-void CusbCamConsoleDlg::OnBnClickedButtonCheckSpeed()
-{
-	// TODO: 在此添加控件通知处理程序代码
-	if (!m_bUsbOpen)
-	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USB未打开。");
-		return;
-	}
-
-	unsigned int speed = 0;
-	m_sensorInUse->GetUsbSpeed(speed);
-	if (speed == USB_SPEED_SUPER)
-	{
-		CString str("USB 3.0 device found");
-		SetDlgItemText(IDC_STATIC_STATUS, str);
-		m_sensorInUse->SendUsbSpeed2Fpga(USB_SPEED_SUPER);
-	}
-	else if (speed == USB_SPEED_HIGH)
-	{
-		CString str("USB 2.0 device found");
-		SetDlgItemText(IDC_STATIC_STATUS, str);
-		m_sensorInUse->SendUsbSpeed2Fpga(USB_SPEED_HIGH);
-	}
-	else
-	{
-		CString str("Unknown USB speed");
-		SetDlgItemText(IDC_STATIC_STATUS, str);
-	}
-
-}
 
 
 void CusbCamConsoleDlg::OnBnClickedButtonWrEeprom()
@@ -1075,15 +1077,8 @@ void CusbCamConsoleDlg::OnBnClickedButtonWrSen()
 }
 
 
-void CusbCamConsoleDlg::OnBnClickedCheckCam1()
+
+void CusbCamConsoleDlg::OnBnClickedButtonSave()
 {
-	for (int i = 0; i < 3; i++)
-	{
-		camctrl.cam[i].mode = 0;
-		if (((CButton*)GetDlgItem(IDC_CHECK_CAM1+i))->GetCheck() == 1)
-		{
-			camctrl.cam[i].mode = 1;
-		}
-	}
-	
+	savefile = 1;
 }

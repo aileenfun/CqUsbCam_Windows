@@ -304,12 +304,10 @@ public:
 		dispmtx.zoom = zoom;
 		return 0;
 	}
-	
-	
-
-
 	void actCmd()
 	{
+		if (m_sensorInUse == NULL)
+			return;
 		m_sensorInUse->ArbitrFunc(&regSettings);
 	}
 };
@@ -349,30 +347,23 @@ public:
 	}
 	int saveParams()
 	{
-		for (int i = 0; i < 5; i++)
-		{
 
-			
-			ofstream outfile;
-			outfile.open(saveFileName(i), ios::binary|ios::out);
-			outfile.write((char*)& mplsCam[i], sizeof(PLSCameraClass));
-		}
 		return 0;
 	}
-	int readParams()
+	int readParams(PLSFiveCam *camconf)
 	{
 		for (int i = 0; i < 5; i++)
-		{
-			ifstream infile;
-			infile.open(saveFileName(i), ios::binary | ios::in);
-			infile.read((char*)&mplsCam[i],sizeof(PLSCameraClass));
-			
+		{		
+			memcpy(&mplsCam[i].sensorSettings, &camconf->mplsCam[i].sensorSettings, sizeof(SensorSettingClass));
+			memcpy(&mplsCam[i].dispmtx, &camconf->mplsCam[i].dispmtx, sizeof(Cdisp_matrix));
+			memcpy(&mplsCam[i].imgDrawCross, &camconf->mplsCam[i].imgDrawCross, sizeof(CimgDrawCross));
+
 			mplsCam[i].checked = 1;
 			
 			for (int k = Func_SKIP; k < Func_ROI; k++)
 			{
 				mplsCam[i].useFuncList(k, -1);
-				Sleep(100);
+				Sleep(10);
 			}
 
 			//ROI func must be careful
@@ -391,7 +382,7 @@ public:
 				if (crossStep == 0)
 					continue;
 				mplsCam[i].imgDrawCross.crossStep = crossStep;
-				int x, y = 0;
+				int x= 0,y = 0;
 				switch (xy)
 				{
 				case 0:

@@ -100,5 +100,5 @@ public:
 	afx_msg void OnBnClickedButtonGenFunc();
 	void SetDlgText(int dlg, int v);
 	afx_msg void OnBnClickedButtonWrSen();
-	afx_msg void OnBnClickedCheckCam1();
+	afx_msg void OnBnClickedButtonSave();
 };

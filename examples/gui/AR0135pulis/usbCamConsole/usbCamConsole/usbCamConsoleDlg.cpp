@@ -1238,8 +1238,22 @@ void CusbCamConsoleDlg::OnBnClickedButtonCrossSet()
 
 void CusbCamConsoleDlg::OnBnClickedButtonSaveConfig2()
 {
-	
-	mpls->saveParams();
+	BOOL isOpen = FALSE;		//是否打开(否则为保存)
+	CString defaultDir = L"";	//默认打开的文件路径
+	CString fileName = L"camConf";			//默认打开的文件名
+	CString filter = L"";	//文件过虑的类型
+	CFileDialog openFileDlg(isOpen, defaultDir, fileName, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, filter, NULL);
+	openFileDlg.GetOFN().lpstrInitialDir = L"";
+	INT_PTR result = openFileDlg.DoModal();
+	CString filePath ;
+	if (result == IDOK) {
+		filePath = openFileDlg.GetPathName();
+	}
+	//CWnd::SetDlgItemTextW(IDC_EDIT_DEST, filePath);
+	ofstream outfile;
+	outfile.open(filePath, ios::binary | ios::out);
+	outfile.write((char*) mpls, sizeof(PLSFiveCam));
+
 	Sleep(2000); 
 	SetDlgItemText(IDC_STATIC_STATUS, L"保存成功");
 }
@@ -1247,6 +1261,22 @@ void CusbCamConsoleDlg::OnBnClickedButtonSaveConfig2()
 
 void CusbCamConsoleDlg::OnBnClickedButtonLoadConfig()
 {
-	mpls->readParams();
+	BOOL isOpen = TRUE;		//是否打开(否则为保存)
+	CString defaultDir = L"";	//默认打开的文件路径
+	CString fileName = L"camConf";			//默认打开的文件名
+	CString filter = L"";	//文件过虑的类型
+	CFileDialog openFileDlg(isOpen, defaultDir, fileName, OFN_HIDEREADONLY | OFN_READONLY, filter, NULL);
+	openFileDlg.GetOFN().lpstrInitialDir = L"";
+	INT_PTR result = openFileDlg.DoModal();
+	CString filePath ;
+	if (result == IDOK) {
+		filePath = openFileDlg.GetPathName();
+	}
+	ifstream infile;
+	infile.open(filePath, ios::binary | ios::in);
+	PLSFiveCam* readconfig = new PLSFiveCam(m_sensorInUse);
+	infile.read((char*)readconfig, sizeof(PLSFiveCam));
+	mpls->readParams(readconfig);
 	SetDlgItemText(IDC_STATIC_STATUS, L"读取成功");
+	//delete readconfig;
 }

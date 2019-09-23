@@ -118,6 +118,15 @@ public:
 		}
 		return datalen;
 	}
+	int getAllRes()
+	{
+		for (int i = 0; i < CAM_NUM; i++)
+		{
+
+			cam[i].getCamRes();
+		}
+		return 0;
+	}
 	int setGenFunction(int s, int value)
 	{
 		cam[0].wrCamCmd(s + Reg_MOTOR, value);

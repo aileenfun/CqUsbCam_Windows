@@ -36,6 +36,7 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\..\..\..\..\..\..\OpenCVProc_d.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -43,8 +44,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Program Files %28x86%29\opencv\build\include\opencv;C:\Program Files %28x86%29\opencv\build\include\opencv2;C:\Program Files %28x86%29\opencv\build\include;..\..\..\..\..\CqUsbCam\CqUsbCam;..\..\..\..\..\CqUsbCam\CqUsbCam\sensors;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Program Files %28x86%29\opencv\build\x86\vc10\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>..\..\..\..\..\CqUsbCam\CqUsbCam;..\..\..\..\..\CqUsbCam\CqUsbCam\sensors;$(IncludePath)</IncludePath>
+    <LibraryPath>$(OutDir);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>

@@ -8,9 +8,18 @@
 #include "afxdialogex.h"
 
 #include "Pintai.h"
+
+#include <iostream>
+#include <fstream>
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
+
+#define FLASH_SECTOR_SIZE 0x100
+#define FLASH_START_PAGE 7*1024*1024/FLASH_SECTOR_SIZE//16384， 0x4000
+#define FLASH_END_PAGE 9*1024*1024/FLASH_SECTOR_SIZE//24576,0x6000
+#define FPGA_FILE_SIZE 1191788
 
 cq_uint32_t     g_iWidth;
 cq_uint32_t     g_iHeight;
@@ -114,8 +123,143 @@ void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
 END_MESSAGE_MAP()
+void CusbCamConsoleDlg::cmdTest()
+{
+	//cq_uint8_t usbids[8];
+	//USB_ORDER sUsbOrder;
+	//sUsbOrder.ReqCode = 0xB0;
+	//sUsbOrder.DataBytes = 8;
+	//sUsbOrder.pData = usbids;
+	//sUsbOrder.Direction = 1;
+	//sUsbOrder.Index = 0;
+	//sUsbOrder.Value = 0;
+	//int rst = SendOrder(m_pUsbHandle, &sUsbOrder);
+
+	arbFuncStruct arbFunc;
+	cq_uint8_t		chData[8];//usb3.0, 64 for usb2.0b
+	arbFunc.FuncNum = 0xB0;
+	arbFunc.order.ReqCode = arbFunc.FuncNum;
+	arbFunc.order.pData = chData;
+	arbFunc.order.Direction = ORDER_IN;
+	arbFunc.order.DataBytes = 8;
+	m_sensorInUse->ArbitrFunc((void*)& arbFunc);
+}
+void  CusbCamConsoleDlg::readFlash()
+{
+	arbFuncStruct arbFunc;
+	
+
+	const int buffsize = 256;
+	cq_uint8_t		chData[buffsize];//usb3.0, 64 for usb2.0b
+	arbFunc.FuncNum = 0xE0;
+	arbFunc.order.ReqCode = arbFunc.FuncNum;
+	arbFunc.order.pData = chData;
+	arbFunc.order.Direction = ORDER_IN;
+	//index= page address=start from page 16384(4M*256)
+	long offset = 0;
+	int pagecnt = 0;
+	arbFunc.order.DataBytes = 256;
+	int totalpage = FPGA_FILE_SIZE / FLASH_SECTOR_SIZE + 1;
+	char* memblock = new char[totalpage* FLASH_SECTOR_SIZE];
+
+	for (int i = FLASH_START_PAGE; i < totalpage+ FLASH_START_PAGE; i++)
+	{
+		arbFunc.order.Index = pagecnt;
+		m_sensorInUse->ArbitrFunc((void*)& arbFunc);
+		memcpy(memblock, arbFunc.order.pData, buffsize);
+	}
+	delete []memblock;
+}
+void CusbCamConsoleDlg::eraseFlashSector()
+{
+	arbFuncStruct arbFunc;
+	const int buffsize = 256;
+	cq_uint8_t		chData[buffsize];//usb3.0, 64 for usb2.0
+	arbFunc.FuncNum = 0xE2;
+	arbFunc.order.ReqCode = arbFunc.FuncNum;
+	arbFunc.order.pData = chData;
+	arbFunc.order.Direction = ORDER_IN;
+	//index= page address=start from page 
+	long offset = 0;
+	int pagecnt = 0;
+	arbFunc.order.DataBytes = 1;
+	arbFunc.order.Value = 1;//is erase
+	for (int i = FLASH_START_PAGE; i < FLASH_END_PAGE; i++)
+	{
+		arbFunc.order.Index = pagecnt;
+		m_sensorInUse->ArbitrFunc((void*)& arbFunc);
+	}
+}
+void CusbCamConsoleDlg::readFpgaFile()
+{
+	long size;
+	char* memblock;
+
+	ifstream file("output_file.rbf", ios::in | ios::binary | ios::ate);
+	if (file.is_open())
+	{
+		//file size is 1191788
+		//from ue 1191787
+		size = (long)file.tellg();
+		memblock = new char[size];
+		
+		file.seekg(0, ios::beg);
+		file.read(memblock, size);
+		file.close();
+		//write to flash
+		arbFuncStruct arbFunc;
+		const int buffsize = 128;
+		cq_uint8_t		chData[buffsize];//usb3.0, 64 for usb2.0
+		//arbFunc.FuncNum = 0xE0;//read flash
+		//arbFunc.FuncNum = 0xE1;//write flash
+		//arbFunc.FuncNum = 0xE2;//sector erase
+		//arbFunc.FuncNum = 0xE3;//config
+		arbFunc.FuncNum = 0xE4;
+		arbFunc.order.ReqCode = arbFunc.FuncNum;
+		arbFunc.order.pData = chData;
+		arbFunc.order.Direction = ORDER_IN;
+		arbFunc.order.DataBytes = 1;
+		m_sensorInUse->ArbitrFunc((void*)& arbFunc);
 
 
+		arbFunc.FuncNum = 0xE5;
+		arbFunc.order.ReqCode = arbFunc.FuncNum;
+		arbFunc.order.pData = chData;
+		arbFunc.order.Direction = ORDER_OUT;
+		long offset = 0;
+		int pagecnt = 0;
+		while(offset<size)
+		{
+			arbFunc.order.Index = FLASH_START_PAGE + pagecnt;
+
+			if (offset + buffsize <= size)
+			{
+				arbFunc.order.DataBytes = buffsize;
+				memcpy(chData, memblock + offset, buffsize);
+				offset += buffsize;
+			}
+			else if (offset + buffsize > size)
+			{
+				long wrsize = size - offset;
+				arbFunc.order.DataBytes = wrsize;
+				memcpy(chData, memblock + offset, wrsize);
+				offset += wrsize;
+			}
+			m_sensorInUse->ArbitrFunc((void*)&arbFunc);
+			pagecnt++;
+		}
+
+		arbFunc.FuncNum = 0xE6;
+		arbFunc.order.ReqCode = arbFunc.FuncNum;
+		arbFunc.order.pData = chData;
+		arbFunc.order.Direction = ORDER_IN;
+		arbFunc.order.DataBytes = 1;
+		m_sensorInUse->ArbitrFunc((void*)& arbFunc);
+
+		delete[] memblock;
+	}
+	else cout << "Unable to open file";
+}
 
 CusbCamConsoleDlg::CusbCamConsoleDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(CusbCamConsoleDlg::IDD, pParent)
@@ -144,6 +288,7 @@ CusbCamConsoleDlg::CusbCamConsoleDlg(CWnd* pParent /*=NULL*/)
 	m_bIsCapturing = false;
 
 	camctrl.init(m_sensorInUse);
+	
 }
 CusbCamConsoleDlg::~CusbCamConsoleDlg()
 {
@@ -329,6 +474,8 @@ void CusbCamConsoleDlg::OnBnClickedButtonOpenUsb()
 	// TODO: 在此添加控件通知处理程序代码
 	if (m_sensorInUse->OpenUSB(0)<0)
 	{
+		
+
 		SetDlgItemText(IDC_STATIC_STATUS, L"打开USB失败。");
 		return;
 	}
@@ -357,6 +504,10 @@ void CusbCamConsoleDlg::OnBnClickedButtonOpenUsb()
 		CString str("Unknown USB speed");
 		SetDlgItemText(IDC_STATIC_STATUS, str);
 	}
+	//readFpgaFile();
+	//cmdTest();
+	//readFlash();
+
 }
 
 

@@ -109,6 +109,16 @@ cq_int32_t CCqUsbCam::OpenUSB(cq_uint32_t usbNum)
 
 		devInfo_t devInfo;
 		GetDevInfo(devInfo);
+		
+		cq_uint8_t usbids[8];
+USB_ORDER sUsbOrder;
+sUsbOrder.ReqCode = 0xB0;
+sUsbOrder.DataBytes = 8;
+sUsbOrder.pData = usbids;
+sUsbOrder.Direction = 1;
+sUsbOrder.Index = 0;
+sUsbOrder.Value = 0;
+//int rst = SendOrder(m_pUsbHandle, &sUsbOrder);
 
 		string strSensorType;
 		string strManufactureName;
@@ -136,7 +146,7 @@ cq_int32_t CCqUsbCam::OpenUSB(cq_uint32_t usbNum)
 		else
 			//return -2;//sensor type错误
 			strSensorType = "SC130GS";
-
+		strSensorType = "AR0135";
 		if(0 != SelectSensor(&strSensorType))
 			return -3;//不支持该型号sensor
 

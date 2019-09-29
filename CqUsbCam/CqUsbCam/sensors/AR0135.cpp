@@ -452,48 +452,10 @@ static tagSensor sensor_AR0135=
 
 static cq_int32_t AR0135_ArbitrFunc(CCyUSBDevice *pUsbHandle,LPVOID arg)
 {
-	/*PLSStruct* plsparam = (PLSStruct*)arg;
-	AR0135_WrFpgaReg(pUsbHandle, SELECT_CAM, plsparam->selectCam);
-	cq_uint32_t temp = plsparam->value;
-	switch (plsparam->funcNum)
-	{
-	case SET_SKIP:
-		AR0135_WrFpgaReg(pUsbHandle, SKIP, plsparam->value);
-		break;
-	case SET_EXPO:
-		
-		
-		temp = temp & 0xff;
-		AR0135_WrFpgaReg(pUsbHandle, EXPO_L, temp);
-		temp = plsparam->value;
-		temp = temp >> 8;
-		AR0135_WrFpgaReg(pUsbHandle, EXPO_H, temp);
-		break;
-	case SET_GAIN:
-		
-		temp = temp & 0xff;
-		AR0135_WrFpgaReg(pUsbHandle, GAIN_L, temp);
-		temp = plsparam->value;
-		temp = temp >> 8;
-		AR0135_WrFpgaReg(pUsbHandle, GAIN_H, temp);
-		break;
-	case SET_ROI_X:
-		
-		temp = temp & 0xff;
-		AR0135_WrFpgaReg(pUsbHandle, ROI_X_L, temp);
-		temp = plsparam->value;
-		temp = temp >> 8;
-		AR0135_WrFpgaReg(pUsbHandle, ROI_X_H, temp);
-		break;
-	case SET_ROI_Y:
-		
-		temp = temp & 0xff;
-		AR0135_WrFpgaReg(pUsbHandle, ROI_Y_L, temp);
-		temp = plsparam->value;
-		temp = temp >> 8;
-		AR0135_WrFpgaReg(pUsbHandle, ROI_Y_H, temp);
-		break;
-	}*/
+	arbFuncStruct arbfunc;
+	memcpy(&arbfunc,(arbFuncStruct*)arg,sizeof(arbFuncStruct));
+
+	SendOrder(pUsbHandle, &arbfunc.order);
 	return 1;
 }
 static tagSensor sensor_AR0135=

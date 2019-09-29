@@ -101,4 +101,8 @@ public:
 	void SetDlgText(int dlg, int v);
 	afx_msg void OnBnClickedButtonWrSen();
 	afx_msg void OnBnClickedButtonSave();
+	void readFpgaFile();
+	void eraseFlashSector();
+	void readFlash();
+	void cmdTest();
 };

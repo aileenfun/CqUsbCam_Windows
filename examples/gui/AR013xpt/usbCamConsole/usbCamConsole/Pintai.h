@@ -2,12 +2,6 @@
 #include "CqUsbCam.h"
 #include <vector>
 #define CAM_NUM 3
-struct arbFuncStruct
-{
-	int FuncNum;
-
-	USB_ORDER order;
-};
 typedef enum CamRegAddr
 {
 	Reg_ROI_Y_START = 0x33bb0110,

@@ -1,5 +1,5 @@
 
-// usbCamConsoleDlg.cpp : ÊµÏÖÎÄ¼þ
+// usbCamConsoleDlg.cpp : Êµï¿½ï¿½ï¿½Ä¼ï¿½
 //
 
 #include "stdafx.h"
@@ -17,7 +17,7 @@
 #endif
 
 #define FLASH_SECTOR_SIZE 0x100
-#define FLASH_START_PAGE 7*1024*1024/FLASH_SECTOR_SIZE//16384£¬ 0x4000
+#define FLASH_START_PAGE 7*1024*1024/FLASH_SECTOR_SIZE//16384ï¿½ï¿½ 0x4000
 #define FLASH_END_PAGE 9*1024*1024/FLASH_SECTOR_SIZE//24576,0x6000
 #define FPGA_FILE_SIZE 1191788
 
@@ -94,20 +94,20 @@ void  Disp(LPVOID lpParam)
 
 	//ReleaseMutex(g_mutexDisp);
 }
-// ÓÃÓÚÓ¦ÓÃ³ÌÐò¡°¹ØÓÚ¡±²Ëµ¥ÏîµÄ CAboutDlg ¶Ô»°¿ò
+// ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½Ã³ï¿½ï¿½ò¡°¹ï¿½ï¿½Ú¡ï¿½ï¿½Ëµï¿½ï¿½ï¿½ï¿½ CAboutDlg ï¿½Ô»ï¿½ï¿½ï¿½
 
 class CAboutDlg : public CDialogEx
 {
 public:
 	CAboutDlg();
 
-// ¶Ô»°¿òÊý¾Ý
+// ï¿½Ô»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	enum { IDD = IDD_ABOUTBOX };
 
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    
 
-// ÊµÏÖ
+// Êµï¿½ï¿½
 protected:
 	DECLARE_MESSAGE_MAP()
 };
@@ -287,8 +287,13 @@ CusbCamConsoleDlg::CusbCamConsoleDlg(CWnd* pParent /*=NULL*/)
 	g_byteBitDepthNo=1;
 	m_bIsCapturing = false;
 
+	show_channel = 0;;
+	g_camsize = 3;
+	imgBuf = NULL;
+	imgBuf1 = NULL;
+	imgBuf2 = NULL;
+
 	camctrl.init(m_sensorInUse);
-	
 }
 CusbCamConsoleDlg::~CusbCamConsoleDlg()
 {
@@ -344,19 +349,18 @@ BEGIN_MESSAGE_MAP(CusbCamConsoleDlg, CDialogEx)
 
 	ON_WM_DEVICECHANGE()
 	ON_WM_CLOSE()
-	ON_BN_CLICKED(IDC_BUTTON_SAVE, &CusbCamConsoleDlg::OnBnClickedButtonSave)
 END_MESSAGE_MAP()
 
 
-// CusbCamConsoleDlg ÏûÏ¢´¦Àí³ÌÐò
+// CusbCamConsoleDlg ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
 BOOL CusbCamConsoleDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
 
-	// ½«¡°¹ØÓÚ...¡±²Ëµ¥ÏîÌí¼Óµ½ÏµÍ³²Ëµ¥ÖÐ¡£
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½...ï¿½ï¿½ï¿½Ëµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Óµï¿½ÏµÍ³ï¿½Ëµï¿½ï¿½Ð¡ï¿½
 
-	// IDM_ABOUTBOX ±ØÐëÔÚÏµÍ³ÃüÁî·¶Î§ÄÚ¡£
+	// IDM_ABOUTBOX ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÏµÍ³ï¿½ï¿½ï¿½î·¶Î§ï¿½Ú¡ï¿½
 	ASSERT((IDM_ABOUTBOX & 0xFFF0) == IDM_ABOUTBOX);
 	ASSERT(IDM_ABOUTBOX < 0xF000);
 
@@ -374,12 +378,12 @@ BOOL CusbCamConsoleDlg::OnInitDialog()
 		}
 	}
 
-	// ÉèÖÃ´Ë¶Ô»°¿òµÄÍ¼±ê¡£µ±Ó¦ÓÃ³ÌÐòÖ÷´°¿Ú²»ÊÇ¶Ô»°¿òÊ±£¬¿ò¼Ü½«×Ô¶¯
-	//  Ö´ÐÐ´Ë²Ù×÷
-	SetIcon(m_hIcon, TRUE);			// ÉèÖÃ´óÍ¼±ê
-	SetIcon(m_hIcon, FALSE);		// ÉèÖÃÐ¡Í¼±ê
+	// ï¿½ï¿½ï¿½Ã´Ë¶Ô»ï¿½ï¿½ï¿½ï¿½Í¼ï¿½ê¡£ï¿½ï¿½Ó¦ï¿½Ã³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú²ï¿½ï¿½Ç¶Ô»ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ü½ï¿½ï¿½Ô¶ï¿½
+	//  Ö´ï¿½Ð´Ë²ï¿½ï¿½ï¿½
+	SetIcon(m_hIcon, TRUE);			// ï¿½ï¿½ï¿½Ã´ï¿½Í¼ï¿½ï¿½
+	SetIcon(m_hIcon, FALSE);		// ï¿½ï¿½ï¿½ï¿½Ð¡Í¼ï¿½ï¿½
 
-	// TODO: ÔÚ´ËÌí¼Ó¶îÍâµÄ³õÊ¼»¯´úÂë
+	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¶ï¿½ï¿½ï¿½Ä³ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	selectChannel.InsertString(0, _T("0"));
 	selectChannel.InsertString(1, _T("1"));
 	selectChannel.InsertString(2, _T("2"));
@@ -414,7 +418,7 @@ BOOL CusbCamConsoleDlg::OnInitDialog()
 	/*((CButton*)GetDlgItem(IDC_CHECK_CAM1))->SetCheck(1);
 	((CButton*)GetDlgItem(IDC_CHECK_CAM2))->SetCheck(1);
 	((CButton*)GetDlgItem(IDC_CHECK_CAM3))->SetCheck(1);*/
-	return TRUE;  // ³ý·Ç½«½¹µãÉèÖÃµ½¿Ø¼þ£¬·ñÔò·µ»Ø TRUE
+	return TRUE;  // ï¿½ï¿½ï¿½Ç½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ãµï¿½ï¿½Ø¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ò·µ»ï¿½ TRUE
 }
 
 void CusbCamConsoleDlg::OnSysCommand(UINT nID, LPARAM lParam)
@@ -430,19 +434,19 @@ void CusbCamConsoleDlg::OnSysCommand(UINT nID, LPARAM lParam)
 	}
 }
 
-// Èç¹ûÏò¶Ô»°¿òÌí¼Ó×îÐ¡»¯°´Å¥£¬ÔòÐèÒªÏÂÃæµÄ´úÂë
-//  À´»æÖÆ¸ÃÍ¼±ê¡£¶ÔÓÚÊ¹ÓÃÎÄµµ/ÊÓÍ¼Ä£ÐÍµÄ MFC Ó¦ÓÃ³ÌÐò£¬
-//  Õâ½«ÓÉ¿ò¼Ü×Ô¶¯Íê³É¡£
+// ï¿½ï¿½ï¿½ï¿½ï¿½Ô»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½ï¿½ï¿½ï¿½Å¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½
+//  ï¿½ï¿½ï¿½ï¿½ï¿½Æ¸ï¿½Í¼ï¿½ê¡£ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½ï¿½Äµï¿½/ï¿½ï¿½Í¼Ä£ï¿½Íµï¿½ MFC Ó¦ï¿½Ã³ï¿½ï¿½ï¿½
+//  ï¿½â½«ï¿½É¿ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½É¡ï¿½
 
 void CusbCamConsoleDlg::OnPaint()
 {
 	if (IsIconic())
 	{
-		CPaintDC dc(this); // ÓÃÓÚ»æÖÆµÄÉè±¸ÉÏÏÂÎÄ
+		CPaintDC dc(this); // ï¿½ï¿½ï¿½Ú»ï¿½ï¿½Æµï¿½ï¿½è±¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
 		SendMessage(WM_ICONERASEBKGND, reinterpret_cast<WPARAM>(dc.GetSafeHdc()), 0);
 
-		// Ê¹Í¼±êÔÚ¹¤×÷Çø¾ØÐÎÖÐ¾ÓÖÐ
+		// Ê¹Í¼ï¿½ï¿½ï¿½Ú¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¾ï¿½ï¿½ï¿½
 		int cxIcon = GetSystemMetrics(SM_CXICON);
 		int cyIcon = GetSystemMetrics(SM_CYICON);
 		CRect rect;
@@ -450,7 +454,7 @@ void CusbCamConsoleDlg::OnPaint()
 		int x = (rect.Width() - cxIcon + 1) / 2;
 		int y = (rect.Height() - cyIcon + 1) / 2;
 
-		// »æÖÆÍ¼±ê
+		// ï¿½ï¿½ï¿½ï¿½Í¼ï¿½ï¿½
 		dc.DrawIcon(x, y, m_hIcon);
 	}
 	else
@@ -459,8 +463,8 @@ void CusbCamConsoleDlg::OnPaint()
 	}
 }
 
-//µ±ÓÃ»§ÍÏ¶¯×îÐ¡»¯´°¿ÚÊ±ÏµÍ³µ÷ÓÃ´Ëº¯ÊýÈ¡µÃ¹â±ê
-//ÏÔÊ¾¡£
+//ï¿½ï¿½ï¿½Ã»ï¿½ï¿½Ï¶ï¿½ï¿½ï¿½Ð¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ÏµÍ³ï¿½ï¿½ï¿½Ã´Ëºï¿½ï¿½ï¿½È¡ï¿½Ã¹ï¿½ï¿½
+//ï¿½ï¿½Ê¾ï¿½ï¿½
 HCURSOR CusbCamConsoleDlg::OnQueryDragIcon()
 {
 	return static_cast<HCURSOR>(m_hIcon);
@@ -471,17 +475,15 @@ HCURSOR CusbCamConsoleDlg::OnQueryDragIcon()
 
 void CusbCamConsoleDlg::OnBnClickedButtonOpenUsb()
 {
-	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
+	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	if (m_sensorInUse->OpenUSB(0)<0)
 	{
-		
-
-		SetDlgItemText(IDC_STATIC_STATUS, L"´ò¿ªUSBÊ§°Ü¡£");
+		SetDlgItemText(IDC_STATIC_STATUS, L"ï¿½ï¿½USBÊ§ï¿½Ü¡ï¿½");
 		return;
 	}
 	m_bIsCamSelected=true;
 
-	SetDlgItemText(IDC_STATIC_STATUS, L"´ò¿ªUSB³É¹¦¡£");
+	SetDlgItemText(IDC_STATIC_STATUS, L"ï¿½ï¿½USBï¿½É¹ï¿½ï¿½ï¿½");
 	m_bUsbOpen = true;
 
 
@@ -514,10 +516,10 @@ void CusbCamConsoleDlg::OnBnClickedButtonOpenUsb()
 
 void CusbCamConsoleDlg::OnBnClickedButtonCloseUsb()
 {
-	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
+	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	if (!m_bUsbOpen)
 	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´´ò¿ª»òÒÑ¾­¹Ø±Õ¡£");
+		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´ï¿½ò¿ª»ï¿½ï¿½Ñ¾ï¿½ï¿½Ø±Õ¡ï¿½");
 		return;
 	}
 	OnBnClickedButtonStopCap();
@@ -528,7 +530,7 @@ void CusbCamConsoleDlg::OnBnClickedButtonCloseUsb()
 
 void CusbCamConsoleDlg::OnBnClickedButtonStopCap()
 {
-	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
+	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	if (false == m_bIsCapturing)
 		return;
 
@@ -539,7 +541,7 @@ void CusbCamConsoleDlg::OnBnClickedButtonStopCap()
 
 	if(m_sensorInUse->StopCap()!=0)
 	{
-		SetDlgItemText(IDC_STATIC_STATUS,L"USBÉÐÎ´²É¼¯");
+		SetDlgItemText(IDC_STATIC_STATUS,L"USBï¿½ï¿½Î´ï¿½É¼ï¿½");
 		return;
 	}
 	WaitForSingleObject(g_mutexDisp, INFINITE);
@@ -561,7 +563,7 @@ void CusbCamConsoleDlg::OnBnClickedButtonStopCap()
 	GetDlgItem(IDC_CHECK_SAVE_VEDIO)->EnableWindow(true);
 #endif
 	m_bIsCapturing = false;
-	SetDlgItemText(IDC_STATIC_STATUS, L"Í£Ö¹²É¼¯¡£");
+	SetDlgItemText(IDC_STATIC_STATUS, L"Í£Ö¹ï¿½É¼ï¿½ï¿½ï¿½");
 	if (imgBuf != NULL)
 	{
 		delete imgBuf;
@@ -583,11 +585,11 @@ void CusbCamConsoleDlg::OnBnClickedButtonStopCap()
 
 void CusbCamConsoleDlg::OnBnClickedButtonVedioCap()
 {
-	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
+	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 		/************************************************************/
 	if (!m_bUsbOpen)
 	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´´ò¿ª¡£");
+		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´ï¿½ò¿ª¡ï¿½");
 		return;
 	}
 	if (true == m_bIsCapturing)
@@ -608,17 +610,17 @@ void CusbCamConsoleDlg::OnBnClickedButtonVedioCap()
 	cv::namedWindow("disp");
 	cv::namedWindow("cam1");
 	cv::namedWindow("cam2");
-	HWND hWnd = (HWND)cvGetWindowHandle("disp");//»ñÈ¡×Ó´°¿ÚµÄHWND
-	HWND hParentWnd = ::GetParent(hWnd);//»ñÈ¡¸¸´°¿ÚHWND¡£¸¸´°¿ÚÊÇÎÒÃÇÒªÓÃµÄ
-	 //Òþ²Ø´°¿Ú±êÌâÀ¸ 
+	HWND hWnd = (HWND)cvGetWindowHandle("disp");//ï¿½ï¿½È¡ï¿½Ó´ï¿½ï¿½Úµï¿½HWND
+	HWND hParentWnd = ::GetParent(hWnd);//ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½HWNDï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½Ãµï¿½
+	 //ï¿½ï¿½ï¿½Ø´ï¿½ï¿½Ú±ï¿½ï¿½ï¿½ï¿½ï¿½ 
 	long style = GetWindowLong(hParentWnd, GWL_STYLE);
 	style &= ~(WS_SYSMENU);
 	SetWindowLong(hParentWnd, GWL_STYLE, style);
 	camctrl.getAllRes();
 
-	if(m_sensorInUse->StartCap(camctrl.getTotalDataLen() , 1, Disp)<0)
+	if (m_sensorInUse->StartCap(camctrl.getTotalDataLen(), 1, CapImgEntry, this)<0)
 	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USBÉè±¸´ò¿ªÊ§°Ü£¡");
+		SetDlgItemText(IDC_STATIC_STATUS, L"USBï¿½è±¸ï¿½ï¿½Ê§ï¿½Ü£ï¿½");
 #if 0
 		GetDlgItem(IDC_RADIO1)->EnableWindow(true);
 		GetDlgItem(IDC_RADIO2)->EnableWindow(true);
@@ -638,13 +640,13 @@ void CusbCamConsoleDlg::OnBnClickedButtonVedioCap()
 	SetTimer(1, 1000, NULL);
 
 	m_bIsCapturing = true;
-	SetDlgItemText(IDC_STATIC_STATUS, L"²É¼¯ÖÐ...");
+	SetDlgItemText(IDC_STATIC_STATUS, L"ï¿½É¼ï¿½ï¿½ï¿½...");
 }
 
 
 void CusbCamConsoleDlg::OnTimer(UINT_PTR nIDEvent)
 {
-	// TODO: ÔÚ´ËÌí¼ÓÏûÏ¢´¦Àí³ÌÐò´úÂëºÍ/»òµ÷ÓÃÄ¬ÈÏÖµ
+	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½/ï¿½ï¿½ï¿½ï¿½ï¿½Ä¬ï¿½ï¿½Öµ
 	unsigned long iFrameCntPerSec =0;
 	unsigned long iByteCntPerSec = 0;
 
@@ -661,8 +663,8 @@ void CusbCamConsoleDlg::OnTimer(UINT_PTR nIDEvent)
 				m_sensorInUse->GetRecvFrameCnt(iFrameCntPerSec);
 				m_sensorInUse->ClearRecvFrameCnt();
 				str.Format(L"%d Fps     %0.4f MBs", iFrameCntPerSec,float(iByteCntPerSec)/1024.0/1024.0);		 
-				HWND hWnd = (HWND)cvGetWindowHandle("disp");//»ñÈ¡×Ó´°¿ÚµÄHWND
-				HWND hParentWnd = ::GetParent(hWnd);//»ñÈ¡¸¸´°¿ÚHWND¡£¸¸´°¿ÚÊÇÎÒÃÇÒªÓÃµÄ			
+				HWND hWnd = (HWND)cvGetWindowHandle("disp");//ï¿½ï¿½È¡ï¿½Ó´ï¿½ï¿½Úµï¿½HWND
+				HWND hParentWnd = ::GetParent(hWnd);//ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½HWNDï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½Ãµï¿½			
 				if(hParentWnd !=NULL)
 				{
 					::SetWindowText(hParentWnd,str);
@@ -680,10 +682,10 @@ void CusbCamConsoleDlg::OnTimer(UINT_PTR nIDEvent)
 
 void CusbCamConsoleDlg::OnBnClickedRadioResolu12801024()
 {
-	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
+	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	if (!m_bUsbOpen)
 	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´´ò¿ª¡£");
+		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´ï¿½ò¿ª¡ï¿½");
 		return;
 	}
 
@@ -695,16 +697,16 @@ void CusbCamConsoleDlg::OnBnClickedRadioResolu12801024()
 		g_iHeight = 720;
 	}
 
-	SetDlgItemText(IDC_STATIC_STATUS, L"·Ö±æÂÊ1280x720¡£");
+	SetDlgItemText(IDC_STATIC_STATUS, L"ï¿½Ö±ï¿½ï¿½ï¿½1280x720ï¿½ï¿½");
 }
 
 
 void CusbCamConsoleDlg::OnBnClickedRadioResolu1280960()
 {
-	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
+	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	if (!m_bUsbOpen)
 	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´´ò¿ª¡£");
+		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´ï¿½ò¿ª¡ï¿½");
 		return;
 	}
 
@@ -716,16 +718,16 @@ void CusbCamConsoleDlg::OnBnClickedRadioResolu1280960()
 		g_iHeight = 960;
 	}
 
-	SetDlgItemText(IDC_STATIC_STATUS, L"·Ö±æÂÊ1280x960¡£");
+	SetDlgItemText(IDC_STATIC_STATUS, L"ï¿½Ö±ï¿½ï¿½ï¿½1280x960ï¿½ï¿½");
 }
 
 
 void CusbCamConsoleDlg::OnBnClickedRadioResolu640480Skip()
 {
-	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
+	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	if (!m_bUsbOpen)
 	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´´ò¿ª¡£");
+		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´ï¿½ò¿ª¡ï¿½");
 		return;
 	}
 
@@ -737,16 +739,16 @@ void CusbCamConsoleDlg::OnBnClickedRadioResolu640480Skip()
 		g_iHeight = 480;
 	}
 
-	SetDlgItemText(IDC_STATIC_STATUS, L"·Ö±æÂÊ640x480skip¡£");
+	SetDlgItemText(IDC_STATIC_STATUS, L"ï¿½Ö±ï¿½ï¿½ï¿½640x480skipï¿½ï¿½");
 }
 
 
 void CusbCamConsoleDlg::OnBnClickedRadioResolu640480Bin()
 {
-	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
+	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	if (!m_bUsbOpen)
 	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´´ò¿ª¡£");
+		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´ï¿½ò¿ª¡ï¿½");
 		return;
 	}
 
@@ -758,75 +760,75 @@ void CusbCamConsoleDlg::OnBnClickedRadioResolu640480Bin()
 		g_iHeight = 480;
 	}
 
-	SetDlgItemText(IDC_STATIC_STATUS, L"·Ö±æÂÊ640x480bin¡£");
+	SetDlgItemText(IDC_STATIC_STATUS, L"ï¿½Ö±ï¿½ï¿½ï¿½640x480binï¿½ï¿½");
 }
 
 void CusbCamConsoleDlg::OnBnClickedRadioTrigmodeAuto()
 {
-	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
+	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	if (!m_bUsbOpen)
 	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´´ò¿ª¡£");
+		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´ï¿½ò¿ª¡ï¿½");
 		return;
 	}
 	(m_bIsCamSelected ? m_sensorInUse->SetTrigMode(TRIGMODE_AUTO) : NULL);
 
 	GetDlgItem(IDC_EDIT_FPGATRIG_FREQ)->EnableWindow(false);
-	SetDlgItemText(IDC_STATIC_STATUS, L"×Ô¶¯´¥·¢¡£");
+	SetDlgItemText(IDC_STATIC_STATUS, L"ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½");
 }
 
 
 void CusbCamConsoleDlg::OnBnClickedRadioTrigmodeFpga()
 {
-	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
+	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	if (!m_bUsbOpen)
 	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´´ò¿ª¡£");
+		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´ï¿½ò¿ª¡ï¿½");
 		return;
 	}
 	(m_bIsCamSelected ? m_sensorInUse->SetTrigMode(TRIGMODE_FPGA) : NULL);
 
 	GetDlgItem(IDC_EDIT_FPGATRIG_FREQ)->EnableWindow(true);
-	SetDlgItemText(IDC_STATIC_STATUS, L"FPGA´¥·¢¡£");
+	SetDlgItemText(IDC_STATIC_STATUS, L"FPGAï¿½ï¿½ï¿½ï¿½ï¿½ï¿½");
 }
 
 
 void CusbCamConsoleDlg::OnBnClickedRadioTrigmodeSoft()
 {
-	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
+	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	if (!m_bUsbOpen)
 	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´´ò¿ª¡£");
+		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´ï¿½ò¿ª¡ï¿½");
 		return;
 	}
 	(m_bIsCamSelected ? m_sensorInUse->SetTrigMode(TRIGMODE_SOFT) : NULL);
 	GetDlgItem(IDC_EDIT_FPGATRIG_FREQ)->EnableWindow(false);
-	SetDlgItemText(IDC_STATIC_STATUS, L"Èí¼þ´¥·¢¡£");
+	SetDlgItemText(IDC_STATIC_STATUS, L"ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½");
 }
 
 
 void CusbCamConsoleDlg::OnBnClickedRadioTrigmodeExt()
 {
 #if 0
-	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
+	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	if (!m_bUsbOpen)
 	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´´ò¿ª¡£");
+		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´ï¿½ò¿ª¡ï¿½");
 		return;
 	}
 	(m_bIsCamSelected ? m_sensorInUse->SetTrigMode(TRIGMODE_SIGNAL) : NULL);
 	GetDlgItem(IDC_EDIT_FPGATRIG_FREQ)->EnableWindow(false);
-	SetDlgItemText(IDC_STATIC_STATUS, L"Íâ²¿ÐÅºÅ´¥·¢¡£");
+	SetDlgItemText(IDC_STATIC_STATUS, L"ï¿½â²¿ï¿½ÅºÅ´ï¿½ï¿½ï¿½ï¿½ï¿½");
 #endif
 }
 
 
 void CusbCamConsoleDlg::OnBnClickedButtonWrSensor()
 {
-	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
+	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	if (!m_bUsbOpen)
 	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´´ò¿ª¡£");
+		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´ï¿½ò¿ª¡ï¿½");
 		return;
 	}
 	CString strAddr, strValue;
@@ -838,16 +840,16 @@ void CusbCamConsoleDlg::OnBnClickedButtonWrSensor()
 	unsigned short iValue = str2hex(strValue);
 
 	(m_bIsCamSelected ? m_sensorInUse->WrSensorReg(iAddr, iValue) : NULL);
-	SetDlgItemText(IDC_STATIC_STATUS, L"ÉèÖÃSensor¼Ä´æÆ÷³É¹¦¡£");
+	SetDlgItemText(IDC_STATIC_STATUS, L"ï¿½ï¿½ï¿½ï¿½Sensorï¿½Ä´ï¿½ï¿½ï¿½ï¿½É¹ï¿½ï¿½ï¿½");
 }
 
 
 void CusbCamConsoleDlg::OnBnClickedButtonRdSensor()
 {
-	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
+	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	if (!m_bUsbOpen)
 	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´´ò¿ª¡£");
+		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´ï¿½ò¿ª¡ï¿½");
 		return;
 	}
 	CString strAddr;
@@ -860,16 +862,16 @@ void CusbCamConsoleDlg::OnBnClickedButtonRdSensor()
 	s_temp.Format(_T("%04x"), iValue&0xffff);
 	SetDlgItemText(IDC_EDIT_SENSOR_REGISTER_VALUE, s_temp);
 
-	SetDlgItemText(IDC_STATIC_STATUS, L"¶ÁÈ¡Sensor¼Ä´æÆ÷³É¹¦¡£");
+	SetDlgItemText(IDC_STATIC_STATUS, L"ï¿½ï¿½È¡Sensorï¿½Ä´ï¿½ï¿½ï¿½ï¿½É¹ï¿½ï¿½ï¿½");
 }
 
 
 void CusbCamConsoleDlg::OnBnClickedButtonWrFpga()
 {
-	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
+	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	if (!m_bUsbOpen)
 	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´´ò¿ª¡£");
+		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´ï¿½ò¿ª¡ï¿½");
 		return;
 	}
 	CString strAddr, strValue;
@@ -888,10 +890,10 @@ void CusbCamConsoleDlg::OnBnClickedButtonWrFpga()
 
 void CusbCamConsoleDlg::OnBnClickedButtonRdFpga()
 {
-	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
+	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	if (!m_bUsbOpen)
 	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´´ò¿ª¡£");
+		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´ï¿½ò¿ª¡ï¿½");
 		return;
 	}
 	CString strAddr;
@@ -921,19 +923,19 @@ unsigned int CusbCamConsoleDlg::str2hex(CString str)
 
 void CusbCamConsoleDlg::OnEnChangeEditFpgatrigFreq()
 {
-	// TODO:  Èç¹û¸Ã¿Ø¼þÊÇ RICHEDIT ¿Ø¼þ£¬Ëü½«²»
-	// ·¢ËÍ´ËÍ¨Öª£¬³ý·ÇÖØÐ´ CDialogEx::OnInitDialog()
-	// º¯Êý²¢µ÷ÓÃ CRichEditCtrl().SetEventMask()£¬
-	// Í¬Ê±½« ENM_CHANGE ±êÖ¾¡°»ò¡±ÔËËãµ½ÑÚÂëÖÐ¡£
+	// TODO:  ï¿½ï¿½ï¿½ï¿½Ã¿Ø¼ï¿½ï¿½ï¿½ RICHEDIT ï¿½Ø¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	// ï¿½ï¿½ï¿½Í´ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð´ CDialogEx::OnInitDialog()
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ CRichEditCtrl().SetEventMask()ï¿½ï¿½
+	// Í¬Ê±ï¿½ï¿½ ENM_CHANGE ï¿½ï¿½Ö¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ãµ½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½
 
-	// TODO:  ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
+	// TODO:  ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	if (!m_bUsbOpen)
 	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´´ò¿ª¡£");
+		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´ï¿½ò¿ª¡ï¿½");
 		return;
 	}
 
-	SetDlgItemText(IDC_STATIC_STATUS, L"FPGA´¥·¢ÆµÂÊÉè¶¨³É¹¦¡£");
+	SetDlgItemText(IDC_STATIC_STATUS, L"FPGAï¿½ï¿½ï¿½ï¿½Æµï¿½ï¿½ï¿½è¶¨ï¿½É¹ï¿½ï¿½ï¿½");
 	CString str;
 	GetDlgItemText(IDC_EDIT_FPGATRIG_FREQ ,str);
 	unsigned char fpgafreq= _tstoi(str);
@@ -951,14 +953,14 @@ void CusbCamConsoleDlg::OnEnChangeEditFpgatrigFreq()
 
 void CusbCamConsoleDlg::OnBnClickedButtonSoftTrig()
 {
-	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
+	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	if (!m_bUsbOpen)
 	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´´ò¿ª¡£");
+		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´ï¿½ò¿ª¡ï¿½");
 		return;
 	}
 	(m_bIsCamSelected ? m_sensorInUse->SoftTrig(): NULL);
-	SetDlgItemText(IDC_STATIC_STATUS, L"Soft´¥·¢¡£");
+	SetDlgItemText(IDC_STATIC_STATUS, L"Softï¿½ï¿½ï¿½ï¿½ï¿½ï¿½");
 }
 
 void  CusbCamConsoleDlg::SetDlgText(int dlg,int v)
@@ -1002,13 +1004,13 @@ void CusbCamConsoleDlg::setAutoGainExpo()
 	{
 		agae = 2;
 	//	(m_bIsCamSelected ? m_sensorInUse->SetAutoGainExpo(true, false) : NULL);
-		SetDlgItemText(IDC_STATIC_STATUS, L"×Ô¶¯ÔöÒæ£¬ÊÖ¶¯ÆØ¹â¡£");
+		SetDlgItemText(IDC_STATIC_STATUS, L"ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½æ£¬ï¿½Ö¶ï¿½ï¿½Ø¹â¡£");
 	}
 	else if ((cbAutoGain.GetCheck() == false))
 	{
 		agae = 0;
 //		(m_bIsCamSelected ? m_sensorInUse->SetAutoGainExpo(false, false) : NULL);
-		SetDlgItemText(IDC_STATIC_STATUS, L"ÊÖ¶¯ÔöÒæ£¬ÊÖ¶¯ÆØ¹â¡£");
+		SetDlgItemText(IDC_STATIC_STATUS, L"ï¿½Ö¶ï¿½ï¿½ï¿½ï¿½æ£¬ï¿½Ö¶ï¿½ï¿½Ø¹â¡£");
 	}
 	else;
 	CString temp;
@@ -1023,10 +1025,10 @@ void CusbCamConsoleDlg::setAutoGainExpo()
 
 void CusbCamConsoleDlg::OnBnClickedButtonWrEeprom()
 {
-	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
+	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	if (!m_bUsbOpen)
 	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´´ò¿ª¡£");
+		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´ï¿½ò¿ª¡ï¿½");
 		return;
 	}
 	CString strAddr, strValue;
@@ -1038,16 +1040,16 @@ void CusbCamConsoleDlg::OnBnClickedButtonWrEeprom()
 	cq_uint16_t iValue = str2hex(strValue);
 
 	m_sensorInUse->WrEeprom(iAddr, iValue);
-	SetDlgItemText(IDC_STATIC_STATUS, L"Ð´EEPROM¡£");
+	SetDlgItemText(IDC_STATIC_STATUS, L"Ð´EEPROMï¿½ï¿½");
 }
 
 
 void CusbCamConsoleDlg::OnBnClickedButtonRdEeprom()
 {
-	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
+	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	if (!m_bUsbOpen)
 	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´´ò¿ª¡£");
+		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´ï¿½ò¿ª¡ï¿½");
 		return;
 	}
 	CString strAddr;
@@ -1059,16 +1061,16 @@ void CusbCamConsoleDlg::OnBnClickedButtonRdEeprom()
 	CString s_temp;
 	s_temp.Format(_T("%02x"), irxval);
 	SetDlgItemText(IDC_EDIT_EEPROM_VALUE, s_temp);
-	SetDlgItemText(IDC_STATIC_STATUS, L"¶ÁEEPROM¡£");
+	SetDlgItemText(IDC_STATIC_STATUS, L"ï¿½ï¿½EEPROMï¿½ï¿½");
 }
 
 
 void CusbCamConsoleDlg::OnBnClickedButtonRdDevId()
 {
-	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
+	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	if (!m_bUsbOpen)
 	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´´ò¿ª¡£");
+		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´ï¿½ò¿ª¡ï¿½");
 		return;
 	}
 	CString strValue;
@@ -1077,16 +1079,16 @@ void CusbCamConsoleDlg::OnBnClickedButtonRdDevId()
 	m_sensorInUse->RdDevID(&iValue,len);
 	strValue.Format(_T("%02x"), iValue);
 	SetDlgItemText(IDC_EDIT_DEVID, strValue);
-	SetDlgItemText(IDC_STATIC_STATUS, L"¶ÁID³É¹¦¡£");
+	SetDlgItemText(IDC_STATIC_STATUS, L"ï¿½ï¿½IDï¿½É¹ï¿½ï¿½ï¿½");
 }
 
 
 void CusbCamConsoleDlg::OnBnClickedButtonWrDevId()
 {
-	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
+	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	if (!m_bUsbOpen)
 	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´´ò¿ª¡£");
+		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´ï¿½ò¿ª¡ï¿½");
 		return;
 	}
 	CString strValue;
@@ -1094,16 +1096,16 @@ void CusbCamConsoleDlg::OnBnClickedButtonWrDevId()
 	cq_uint8_t iValue = str2hex(strValue);
 	cq_uint32_t len=1;
 	m_sensorInUse->WrDevID(&iValue,len);
-	SetDlgItemText(IDC_STATIC_STATUS, L"ÉèÖÃID³É¹¦¡£");
+	SetDlgItemText(IDC_STATIC_STATUS, L"ï¿½ï¿½ï¿½ï¿½IDï¿½É¹ï¿½ï¿½ï¿½");
 }
 
 
 void CusbCamConsoleDlg::OnBnClickedButtonRdDevSn()
 {
-	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
+	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	if (!m_bUsbOpen)
 	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´´ò¿ª¡£");
+		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´ï¿½ò¿ª¡ï¿½");
 		return;
 	}
 	CString strValue;
@@ -1116,16 +1118,16 @@ void CusbCamConsoleDlg::OnBnClickedButtonRdDevSn()
 	temp+=iValue[3]<<8*3;
 	strValue.Format(_T("%02x"), temp);
 	SetDlgItemText(IDC_EDIT_SN, strValue);
-	SetDlgItemText(IDC_STATIC_STATUS, L"¶ÁSN³É¹¦¡£");
+	SetDlgItemText(IDC_STATIC_STATUS, L"ï¿½ï¿½SNï¿½É¹ï¿½ï¿½ï¿½");
 }
 
 
 void CusbCamConsoleDlg::OnBnClickedButtonWrDevSn()
 {
-	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
+	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	if (!m_bUsbOpen)
 	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´´ò¿ª¡£");
+		SetDlgItemText(IDC_STATIC_STATUS, L"USBÎ´ï¿½ò¿ª¡ï¿½");
 		return;
 	}
 	CString strValue;
@@ -1138,10 +1140,10 @@ void CusbCamConsoleDlg::OnBnClickedButtonWrDevSn()
 	iValue[3]=(temp>>8*3)&0xff;
 	cq_uint32_t len=4;
 	m_sensorInUse->WrDevSN(iValue,len);
-	SetDlgItemText(IDC_STATIC_STATUS, L"ÉèÖÃSN³É¹¦¡£");
+	SetDlgItemText(IDC_STATIC_STATUS, L"ï¿½ï¿½ï¿½ï¿½SNï¿½É¹ï¿½ï¿½ï¿½");
 }
 
-BOOL CusbCamConsoleDlg::OnDeviceChange( UINT nEventType, DWORD dwData )
+BOOL CusbCamConsoleDlg::OnDeviceChange(UINT nEventType, DWORD_PTR dwData)
 {
 	cq_uint32_t devCnt=0;
 	m_sensorInUse->GetDevCnt(devCnt);

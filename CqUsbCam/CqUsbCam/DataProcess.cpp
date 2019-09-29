@@ -62,10 +62,11 @@ void CDataProcess::SetImgQueue(wqueue<CImgFrame*>  *pImgQueue)
 	assert(NULL!=pImgQueue);
 	m_pImgQueue=pImgQueue;
 }
-void CDataProcess::SetCallBackFunc(callback_t CallBackFunc)
+void CDataProcess::SetCallBackFunc(callback_t CallBackFunc, void *lpObject)
 {
 	assert(NULL!=CallBackFunc);
 	m_CallBackFunc=CallBackFunc;
+	m_lpObject = lpObject;
 }
 
 unsigned int CDataProcess::ThreadAdapter(void* __this)
@@ -114,7 +115,10 @@ int CDataProcess::ThreadFunc()
 		Disp(imgfrm->m_imgBuf);
 #else
         if(imgfrm!=NULL)
-			m_CallBackFunc(imgfrm->m_imgBuf);
+		{
+			m_CallBackFunc(imgfrm, m_lpObject);
+		}
+			
 #endif
 
 		Sleep(1);	

@@ -1,5 +1,5 @@
 
-// usbCamConsoleDlg.h : Í·ÎÄ¼þ
+// usbCamConsoleDlg.h : Í·ï¿½Ä¼ï¿½
 //
 
 #pragma once
@@ -8,9 +8,10 @@
 #include "SensorCapbablity.h"
 #include <cv.hpp>
 #include <opencv.hpp>
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
+//#include <opencv2/core/core.hpp>
+//#include <opencv2/highgui/highgui.hpp>
 #include "afxwin.h"
+#include "Pintai.h"
 
 
 class CusbCamConsoleDlg : public CDialogEx
@@ -23,24 +24,39 @@ private:
 	CCqUsbCam*		m_sensorInUse;
 	cq_uint32_t		m_iDevCnt;
 
+	cq_uint32_t     g_iWidth;
+	cq_uint32_t     g_iHeight;
+	cq_uint8_t		g_byteBitDepthNo;
+	cq_uint8_t		g_byteResolutionType;
 
-// ¹¹Ôì
+	HANDLE g_mutexDisp;
+	HANDLE g_mutexTimer;
+	int show_channel;
+	int g_camsize;
+	byte* imgBuf ;
+	byte* imgBuf1;
+	byte* imgBuf2 ;
+	CCameraCtrl camctrl;
+
+// ï¿½ï¿½ï¿½ï¿½
 public:
-	CusbCamConsoleDlg(CWnd* pParent = NULL);	// ±ê×¼¹¹Ôìº¯Êý
+	CusbCamConsoleDlg(CWnd* pParent = NULL);	// ï¿½ï¿½×¼ï¿½ï¿½ï¿½ìº¯ï¿½ï¿½
 	~CusbCamConsoleDlg();
 
-// ¶Ô»°¿òÊý¾Ý
+	static void CapImgEntry(LPVOID lpParam, LPVOID lpObject){ ((CusbCamConsoleDlg *)lpObject)->Disp(lpParam); };
+
+// ï¿½Ô»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	enum { IDD = IDD_USBCAMCONSOLE_DIALOG };
 
 protected:
-	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV Ö§³Ö
+	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV Ö§ï¿½ï¿½
 
 
-// ÊµÏÖ
+// Êµï¿½ï¿½
 protected:
 	HICON m_hIcon;
 
-	// Éú³ÉµÄÏûÏ¢Ó³Éäº¯Êý
+	// ï¿½ï¿½ï¿½Éµï¿½ï¿½ï¿½Ï¢Ó³ï¿½äº¯ï¿½ï¿½
 	virtual BOOL OnInitDialog();
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
 	afx_msg void OnPaint();
@@ -54,6 +70,7 @@ public:
 	afx_msg void OnBnClickedButtonVedioCap();
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 private:
+	void Disp(void *lpParam);
 
 public:
 
@@ -90,7 +107,7 @@ public:
 	afx_msg void OnBnClickedRadioResolu1280960();
 	afx_msg void OnBnClickedRadioResolu640480Skip();
 	afx_msg void OnBnClickedRadioResolu640480Bin();
-	afx_msg BOOL OnDeviceChange(UINT nEventType, DWORD dwData );
+	afx_msg BOOL OnDeviceChange(UINT nEventType, DWORD_PTR dwData);
 	afx_msg void OnClose();
 	afx_msg void OnCbnSelchangeCombo1();
 	CComboBox selectChannel;

@@ -259,7 +259,7 @@ private:
  	*  return:				0 on success, negative values on error
  	*	description:		start capture
  	\************************************************************************************************/
-	cq_int32_t  StartCap(const cq_uint32_t iHeight, const cq_uint32_t iWidth, callback_t CallBackFunc);
+	cq_int32_t  StartCap(const cq_uint32_t iHeight, const cq_uint32_t iWidth, callback_t CallBackFunc, void *lpObject);
 	
 	/************************************************************************************************\
  	*	name:				StopCap

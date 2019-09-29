@@ -34,7 +34,7 @@ public:
 	void Close();
 
 	void SetImgQueue(wqueue<CImgFrame*>  *pImgQueue);
-	void SetCallBackFunc(callback_t CallBackFunc);	
+	void SetCallBackFunc(callback_t CallBackFunc, void *lpObject);	
 
 	//void ThreadFunc();
 	//static void* ThreadAdapter(void* __this);
@@ -56,6 +56,7 @@ private:
 
 	cq_bool_t m_bProcess;
 	callback_t m_CallBackFunc;
+	void *m_lpObject;
 	
 };
 

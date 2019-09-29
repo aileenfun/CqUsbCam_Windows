@@ -30,7 +30,7 @@
  typedef bool cq_bool_t;
 
  //typedef VOID (WINAPI * callback_t)(LPVOID lpParam, LPVOID lpUser);
- typedef void (*callback_t)(void *);
+ typedef void (*callback_t)(void *lpBuf, void *lpObject);
 
 
 #define ORDER_IN 1

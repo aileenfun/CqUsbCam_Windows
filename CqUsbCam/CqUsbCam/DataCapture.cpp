@@ -257,7 +257,7 @@ cq_int32_t CDataCapture::Input(const cq_uint8_t* lpData, const cq_uint32_t dwSiz
     cq_bool_t b_header=false/*, b_imu=false*/;
     cq_uint32_t datalen=m_iWidth*m_iHeight+16;// 16 added by qbc
 
-    memcpy(m_pInData+m_iCount,lpData,dwSize);
+    ::memcpy(m_pInData+m_iCount,lpData,dwSize);
 
     for(cq_uint32_t i=0;i<iBytes;++i)
     {
@@ -265,19 +265,25 @@ cq_int32_t CDataCapture::Input(const cq_uint8_t* lpData, const cq_uint32_t dwSiz
         if ((i + datalen) >= iBytes)
         {
             m_iCount = iBytes - i;
-            memcpy(m_pInData, m_pInData + i, m_iCount);
+            ::memcpy(m_pInData, m_pInData + i, m_iCount);
             return 0;
         }
 
         if(m_pInData[i]==0x33&&m_pInData[i+1]==0xcc&&m_pInData[i+14]==0x22&&m_pInData[i+15]==0xdd&&b_header==false)
         {
-			m_pInputframe->m_camNum = m_pInData[4];
+			m_pInputframe->m_timeStamp = m_pInData[i+2];
+			m_pInputframe->m_timeStamp = m_pInData[i + 3];
+			m_pInputframe->m_timeStamp = m_pInData[i + 4];
+			m_pInputframe->m_timeStamp = m_pInData[i + 5];
+
+			m_pInputframe->mode = m_pInData[i + 10];
+			m_pInputframe->mode2 = m_pInData[i + 11];
             i=i+16;
            // memcpy(m_pOutData,m_pInData+i,datalen);
             //memcpy(m_pInputframe->m_imgBuf,m_pOutData,m_iWidth*m_iHeight);
 			
 
-			memcpy(m_pInputframe->m_imgBuf, m_pInData + i, m_iWidth * m_iHeight);
+			::memcpy(m_pInputframe->m_imgBuf, m_pInData + i, m_iWidth * m_iHeight);
             m_pImgQueue->add(m_pInputframe);
 
             m_lRecvFrameCnt++;

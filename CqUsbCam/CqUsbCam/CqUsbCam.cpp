@@ -12,7 +12,7 @@
  *                                                                                	*
  \***************************************************************************************/
 
-// CqUsbCam.cpp : ¶¨Òå DLL Ó¦ÓÃ³ÌÐòµÄµ¼³öº¯Êý¡£
+// CqUsbCam.cpp : ï¿½ï¿½ï¿½ï¿½ DLL Ó¦ï¿½Ã³ï¿½ï¿½ï¿½Äµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //
 
 #include "StdAfx.h"
@@ -109,16 +109,6 @@ cq_int32_t CCqUsbCam::OpenUSB(cq_uint32_t usbNum)
 
 		devInfo_t devInfo;
 		GetDevInfo(devInfo);
-		
-		cq_uint8_t usbids[8];
-USB_ORDER sUsbOrder;
-sUsbOrder.ReqCode = 0xB0;
-sUsbOrder.DataBytes = 8;
-sUsbOrder.pData = usbids;
-sUsbOrder.Direction = 1;
-sUsbOrder.Index = 0;
-sUsbOrder.Value = 0;
-//int rst = SendOrder(m_pUsbHandle, &sUsbOrder);
 
 		string strSensorType;
 		string strManufactureName;
@@ -133,7 +123,7 @@ sUsbOrder.Value = 0;
 		memcpy(chManufactureName, devInfo.manufactureName, DEV_INFOR_MANUFACTURE_NAME_LEN);
 
 		//if(strcmp(chManufactureName, "CCHV"))
-		//	return -1;//·Ç¡°²ÉÆð¡±²úÆ·
+		//	return -1;//ï¿½Ç¡ï¿½ï¿½ï¿½ï¿½ð¡±²ï¿½Æ·
 				
 		if((!strcmp(chSensorType, "0134"))||(!strcmp(devInfo.sensorType, "0135")))
 			strSensorType = "AR0135";
@@ -144,11 +134,11 @@ sUsbOrder.Value = 0;
 		else if(!strcmp(chSensorType, "P001"))
 			strSensorType = "MT9P001";
 		else
-			//return -2;//sensor type´íÎó
+			//return -2;//sensor typeï¿½ï¿½ï¿½ï¿½
 			strSensorType = "SC130GS";
 		strSensorType = "AR0135";
 		if(0 != SelectSensor(&strSensorType))
-			return -3;//²»Ö§³Ö¸ÃÐÍºÅsensor
+			return -3;//ï¿½ï¿½Ö§ï¿½Ö¸ï¿½ï¿½Íºï¿½sensor
 
 		m_bIsInterfaceClaimed=true;
 
@@ -199,7 +189,7 @@ cq_int32_t  CCqUsbCam::InitSensor()
 }
 
 
-cq_int32_t  CCqUsbCam::StartCap(const cq_uint32_t iHeight, const cq_uint32_t iWidth, callback_t CallBackFunc)
+cq_int32_t  CCqUsbCam::StartCap(const cq_uint32_t iHeight, const cq_uint32_t iWidth, callback_t CallBackFunc, void *lpObject)
 {
 	if(false == m_bIsInterfaceClaimed)
 		return ERR_ITF_NOT_CLAIMED;
@@ -222,7 +212,7 @@ cq_int32_t  CCqUsbCam::StartCap(const cq_uint32_t iHeight, const cq_uint32_t iWi
     m_pDataCap->SetUsbHandle(m_pUsbHandle);
     m_pDataCap->SetImgQueue(m_pImgQueue);
 
-	m_pDataProc->SetCallBackFunc(CallBackFunc);
+	m_pDataProc->SetCallBackFunc(CallBackFunc, lpObject);
     m_pDataProc->SetImgQueue(m_pImgQueue);
 
 
@@ -246,7 +236,7 @@ cq_int32_t  CCqUsbCam::StopCap()
 
 	//m_sensorInUse.StopCap(m_pUsbHandle);
 
-	m_pDataProc->Close();//±ØÐë±£Ö¤ÔÚÍ£Ö¹²É¼¯Ö®Ç°Í£µô´¦ÀíÏß³Ì£¬·ñÔò»áÔì³ÉËÀËø
+	m_pDataProc->Close();//ï¿½ï¿½ï¿½ë±£Ö¤ï¿½ï¿½Í£Ö¹ï¿½É¼ï¿½Ö®Ç°Í£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß³Ì£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     m_pDataCap->Close();
 
 	m_sensorInUse.StopCap(m_pUsbHandle);

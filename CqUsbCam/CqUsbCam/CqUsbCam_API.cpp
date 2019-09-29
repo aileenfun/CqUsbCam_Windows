@@ -1,10 +1,9 @@
 #if 0
 #include "stdafx.h"
 #include "CqUsbCam_API.h"
- #include <vector>
+#include <vector>
 
 using namespace std;
-
 vector<CCqUsbCam*> g_vecDev;
 	
 	;

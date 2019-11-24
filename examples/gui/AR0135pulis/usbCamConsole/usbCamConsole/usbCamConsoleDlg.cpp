@@ -33,9 +33,10 @@ std::wstring s2ws(const std::string& s)
 //Cdisp_matrix dispmtx;
 //CimgDrawCross imgDrawCross;
 PLSFiveCam* mplsdisp;
-void  Disp(LPVOID lpParam)
+void CusbCamConsoleDlg::Disp(LPVOID lpParam)
 {
-	cq_uint8_t *pDataBuffer = (cq_uint8_t*)lpParam;
+	CImgFrame* imgframe = (CImgFrame*)lpParam;
+	cq_uint8_t* pDataBuffer = imgframe->m_imgBuf;
 	int sig_width = 640;
 	int sig_height= 360;
 	int imglen = 640 * 360;
@@ -73,9 +74,9 @@ void  Disp(LPVOID lpParam)
 	dispframelist[mplsdisp->mplsCam[2].dispmtx.dispslot].copyTo(mergeimg(cv::Rect(sig_width * 1, sig_height*1,sig_width, sig_height)));//3
 	dispframelist[mplsdisp->mplsCam[3].dispmtx.dispslot].copyTo(mergeimg(cv::Rect(sig_width * 2, sig_height*0, sig_width, sig_height)));//4
 	dispframelist[mplsdisp->mplsCam[4].dispmtx.dispslot].copyTo(mergeimg(cv::Rect(sig_width * 2, sig_height*2, sig_width, sig_height)));//5
-	//cv::imshow("resize",dispframelist[0]);
+	cv::namedWindow("disp");
 	cv::imshow("disp", mergeimg);
-	//cv::imshow("disp", oneframe);
+	
 	cv::waitKey(1);
 	/**************
 	(0, 0)--11111111111--(w,0)--00000000000--(w*2,0)--44444444444--
@@ -428,19 +429,19 @@ void CusbCamConsoleDlg::OnBnClickedButtonVedioCap()
 	GetDlgItem(IDC_CHECK_SAVE_VEDIO)->EnableWindow(false);
 #endif
 
-	//cv::namedWindow("disp");
-	//cv::moveWindow("disp", 0, 0);
-	//HWND hWnd = (HWND)cvGetWindowHandle("disp");//获取子窗口的HWND
-	//HWND hParentWnd = ::GetParent(hWnd);//获取父窗口HWND。父窗口是我们要用的
-	// //隐藏窗口标题栏 
-	//long style = GetWindowLong(hParentWnd, GWL_STYLE);
-	//style &= ~(WS_SYSMENU);
-	//SetWindowLong(hParentWnd, GWL_STYLE, style);
+	cv::namedWindow("disp");
+	cv::moveWindow("disp", 0, 0);
+	HWND hWnd = (HWND)cvGetWindowHandle("disp");//获取子窗口的HWND
+	HWND hParentWnd = ::GetParent(hWnd);//获取父窗口HWND。父窗口是我们要用的
+	 //隐藏窗口标题栏 
+	long style = GetWindowLong(hParentWnd, GWL_STYLE);
+	style &= ~(WS_SYSMENU);
+	SetWindowLong(hParentWnd, GWL_STYLE, style);
 
 	g_byteBitDepthNo = 1;
 	g_iHeight = 360*5;
 	g_iWidth = 640;
-	if(m_sensorInUse->StartCap(g_iHeight, (g_byteBitDepthNo == 1 ? g_iWidth : g_iWidth * 2), Disp)<0)
+	if(m_sensorInUse->StartCap(g_iHeight, g_iWidth, CapImgEntry,this)<0)
 	{
 		SetDlgItemText(IDC_STATIC_STATUS, L"USB设备打开失败！");
 #if 0

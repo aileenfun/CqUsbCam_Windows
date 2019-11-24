@@ -195,14 +195,20 @@ cq_int32_t CDataCapture::ReadData( cq_uint8_t* pbuff, cq_int64_t &lBytes )
 	int temp = 0;
 	if(m_pUsbHandle->IsOpen())
 	{
+		m_pUsbHandle->BulkInEndPt->TimeOut = 1000;
 		if(m_pUsbHandle->BulkInEndPt->GetXferSize()<lBytes)
 		{
 			m_pUsbHandle->BulkInEndPt->SetXferSize(lBytes);
 		}
 		if(temp=m_pUsbHandle->BulkInEndPt->XferData((PUCHAR)pbuff,lBytes))
 		{
+			Sleep(1);
 			return 0;
 		}
+	}
+	else
+	{
+		Sleep(1);
 	}
 	return temp;
 }
@@ -278,6 +284,7 @@ cq_int32_t CDataCapture::Input(const cq_uint8_t* lpData, const cq_uint32_t dwSiz
 
 			m_pInputframe->mode = m_pInData[i + 10];
 			m_pInputframe->mode2 = m_pInData[i + 11];
+			m_pInputframe->temper = m_pInData[i + 12];
             i=i+16;
            // memcpy(m_pOutData,m_pInData+i,datalen);
             //memcpy(m_pInputframe->m_imgBuf,m_pOutData,m_iWidth*m_iHeight);

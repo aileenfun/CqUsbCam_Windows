@@ -12,14 +12,26 @@
 #include <iostream>
 #include <fstream>
 
+#include "ImgFrame.h"
+#include<time.h>
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
 
-#define FLASH_SECTOR_SIZE 0x100
-#define FLASH_START_PAGE 7*1024*1024/FLASH_SECTOR_SIZE//16384�� 0x4000
-#define FLASH_END_PAGE 9*1024*1024/FLASH_SECTOR_SIZE//24576,0x6000
+#define FLASH_PAGE_SIZE 0x100
+#define FLASH_SECTOR_SIZE 0x1000
+#define FLASH_FPGA_START_ADDR 4*1024*1024
+#define FLASH_FPGA_END_ADDR 6*1024*1024
+
+#define FLASH_FPGA_START_PAGE (FLASH_FPGA_START_ADDR/FLASH_PAGE_SIZE)//16384, 0x4000
+#define FLASH_FPGA_END_PAGE  FLASH_FPGA_END_ADDR/FLASH_PAGE_SIZE
 #define FPGA_FILE_SIZE 1191788
+
+#define FLASH_USER_START_PAGE 6*1024*1024/FLASH_PAGE_SIZE
+#define FLASH_USER_END_PAGE (FLASH_USER_START_PAGE+4096/FLASH_PAGE_SIZE)
+
+
 
 cq_uint32_t     g_iWidth;
 cq_uint32_t     g_iHeight;
@@ -29,16 +41,23 @@ cq_uint8_t		g_byteResolutionType;
 int savefile = 0;
 HANDLE g_mutexDisp;
 HANDLE g_mutexTimer;
-int show_channel = 0;;
+int show_channel = 1;
 int g_camsize = 3;
 byte* imgBuf = NULL;
 byte* imgBuf1 = NULL;
 byte* imgBuf2 = NULL;
 CCameraCtrl camctrl;
-void  Disp(LPVOID lpParam)
+int f_testStatus = 0;
+void  CusbCamConsoleDlg::Disp(LPVOID lpParam)
 {
 	int i = 0, j = 0, k = 0;
-	cq_uint8_t *pDataBuffer = (cq_uint8_t*)lpParam;
+	CImgFrame* imgframe = (CImgFrame*)lpParam;
+	cq_uint8_t* pDataBuffer = imgframe->m_imgBuf;
+	imgframe->m_timeStamp;
+	imgframe->mode;
+	imgframe->mode2;
+	imgframe->temper;
+	f_testStatus = 1;
 	int offset = 0;
 	if (imgBuf == NULL)
 	{
@@ -54,7 +73,7 @@ void  Disp(LPVOID lpParam)
 	}
 
 	offset = 0;
-	if (1)//camctrl.cam[0].mode == 1)
+	if (show_channel==1 || show_channel == 4)
 	{
 		memcpy(imgBuf, pDataBuffer + offset, camctrl.cam[0].height * camctrl.cam[0].width);
 		offset += camctrl.cam[0].height * camctrl.cam[0].width;
@@ -66,7 +85,7 @@ void  Disp(LPVOID lpParam)
 		}
 	}
 	
-	if (1)//camctrl.cam[1].mode == 1)
+	if (show_channel==2 || show_channel == 4)
 	{
 		memcpy(imgBuf1, pDataBuffer + offset, camctrl.cam[1].height * camctrl.cam[1].width);
 		offset += camctrl.cam[1].height * camctrl.cam[1].width;
@@ -78,7 +97,7 @@ void  Disp(LPVOID lpParam)
 		}
 	}
 
-	if (1)//camctrl.cam[2].mode == 1)
+	if (show_channel==3|| show_channel==4)
 	{
 		memcpy(imgBuf2, pDataBuffer + offset, camctrl.cam[2].height * camctrl.cam[2].width);
 		offset += camctrl.cam[2].height * camctrl.cam[2].width;
@@ -144,12 +163,78 @@ void CusbCamConsoleDlg::cmdTest()
 	arbFunc.order.DataBytes = 8;
 	m_sensorInUse->ArbitrFunc((void*)& arbFunc);
 }
+void CusbCamConsoleDlg::readUserFlash()
+{
+	arbFuncStruct arbFunc;
+	const int buffsize = 256;
+	cq_uint8_t		chData[buffsize];
+arbFunc.FuncNum = 0xE0;
+arbFunc.order.ReqCode = arbFunc.FuncNum;
+arbFunc.order.pData = chData;
+arbFunc.order.Direction = ORDER_IN;
+arbFunc.order.DataBytes = 256;
+char* memblock = new char[(FLASH_USER_END_PAGE-FLASH_USER_START_PAGE)*FLASH_PAGE_SIZE];
+memset(memblock, 0, (FLASH_USER_END_PAGE - FLASH_USER_START_PAGE) * FLASH_PAGE_SIZE);
+long offset = 0;
+int pagecnt = 0;
+for (int pagecnt = FLASH_USER_START_PAGE; pagecnt < FLASH_USER_END_PAGE; pagecnt++)
+{
+	arbFunc.order.Index = pagecnt;
+	m_sensorInUse->ArbitrFunc((void*)& arbFunc);
+	memcpy(memblock+ offset, arbFunc.order.pData, buffsize);
+	offset += arbFunc.order.DataBytes;
+}
+delete[]memblock;
+
+}
+void CusbCamConsoleDlg::writeUserFlash()
+{
+	arbFuncStruct arbFunc;
+	const int buffsize = 256;
+	cq_uint8_t		chData[buffsize];
+	arbFunc.FuncNum = 0xE1;
+	arbFunc.order.ReqCode = arbFunc.FuncNum;
+	arbFunc.order.pData = chData;
+	arbFunc.order.Direction = ORDER_OUT;
+	long offset = 0;
+	int pagecnt = 0;
+	arbFunc.order.DataBytes = 256;
+	char* memblock = new char[(FLASH_USER_END_PAGE - FLASH_USER_START_PAGE) * FLASH_PAGE_SIZE];
+	for (int i = 0; i < (FLASH_USER_END_PAGE - FLASH_USER_START_PAGE) * FLASH_PAGE_SIZE; i++)
+	{
+		memblock[i]=i;
+	}
+	for (int pagecnt = FLASH_USER_START_PAGE; pagecnt < FLASH_USER_END_PAGE; pagecnt++)
+	{
+		arbFunc.order.Index = pagecnt;
+		memcpy(arbFunc.order.pData,memblock + offset, buffsize);
+		offset += arbFunc.order.DataBytes;
+		m_sensorInUse->ArbitrFunc((void*)& arbFunc);
+		//pagecnt++;
+	}
+	delete[]memblock;
+}
+void CusbCamConsoleDlg::eraseUserFlash()
+{
+	arbFuncStruct arbFunc;
+	const int buffsize = 128;
+	cq_uint8_t		chData[buffsize];
+	arbFunc.FuncNum = 0xE2;
+	arbFunc.order.ReqCode = arbFunc.FuncNum;
+	arbFunc.order.pData = chData;
+	arbFunc.order.Direction = ORDER_IN;
+	arbFunc.order.DataBytes = 4;
+	arbFunc.order.Value = 1;//for user sector
+	arbFunc.order.Index = 0;//erase sector num,++ to erase more sector
+	m_sensorInUse->ArbitrFunc((void*)& arbFunc);
+
+
+}
 void  CusbCamConsoleDlg::readFlash()
 {
 	arbFuncStruct arbFunc;
-	
 
-	const int buffsize = 256;
+	const int buffsize = 128;
 	cq_uint8_t		chData[buffsize];//usb3.0, 64 for usb2.0b
 	arbFunc.FuncNum = 0xE0;
 	arbFunc.order.ReqCode = arbFunc.FuncNum;
@@ -158,11 +243,11 @@ void  CusbCamConsoleDlg::readFlash()
 	//index= page address=start from page 16384(4M*256)
 	long offset = 0;
 	int pagecnt = 0;
-	arbFunc.order.DataBytes = 256;
-	int totalpage = FPGA_FILE_SIZE / FLASH_SECTOR_SIZE + 1;
-	char* memblock = new char[totalpage* FLASH_SECTOR_SIZE];
+	arbFunc.order.DataBytes = 128;
+	int totalpage = FPGA_FILE_SIZE / FLASH_PAGE_SIZE + 1;
+	char* memblock = new char[totalpage* FLASH_PAGE_SIZE];
 
-	for (int i = FLASH_START_PAGE; i < totalpage+ FLASH_START_PAGE; i++)
+	for (int i = FLASH_FPGA_START_PAGE; i < totalpage+ FLASH_FPGA_START_PAGE; i++)
 	{
 		arbFunc.order.Index = pagecnt;
 		m_sensorInUse->ArbitrFunc((void*)& arbFunc);
@@ -184,11 +269,127 @@ void CusbCamConsoleDlg::eraseFlashSector()
 	int pagecnt = 0;
 	arbFunc.order.DataBytes = 1;
 	arbFunc.order.Value = 1;//is erase
-	for (int i = FLASH_START_PAGE; i < FLASH_END_PAGE; i++)
+	for (int i = FLASH_FPGA_START_PAGE; i < FLASH_FPGA_END_PAGE; i++)
 	{
 		arbFunc.order.Index = pagecnt;
 		m_sensorInUse->ArbitrFunc((void*)& arbFunc);
 	}
+}
+void CusbCamConsoleDlg::writeFPGAfile()
+{
+	long size;
+	char* memblock;
+
+	ifstream file("output_file.rbf", ios::in | ios::binary | ios::ate);
+	if (file.is_open())
+	{
+		size = (long)file.tellg();//435403
+		memblock = new char[size];
+
+		file.seekg(0, ios::beg);
+		file.read(memblock, size);
+		file.close();
+	
+		arbFuncStruct arbFunc;
+		const int buffsize = 256;
+		cq_uint8_t		chData[buffsize];//usb3.0, 64 for usb2.0
+		//erase fpga sector;
+		arbFunc.FuncNum = 0xE2;
+		int sector = 0;
+		arbFunc.order.ReqCode = arbFunc.FuncNum;
+		arbFunc.order.pData = chData;
+		chData[0] = 2;
+		arbFunc.order.Value = 2;
+		arbFunc.order.Direction = ORDER_IN;
+		for (int sector = 0; sector < size / FLASH_SECTOR_SIZE +2; sector++)//sector 0 for file size
+		{
+			arbFunc.order.Index = sector;
+			m_sensorInUse->ArbitrFunc((void*)& arbFunc);
+		}
+
+		//write file size
+		arbFunc.FuncNum = 0xE1;
+		arbFunc.order.ReqCode = arbFunc.FuncNum;
+		arbFunc.order.pData = chData;
+		arbFunc.order.Direction = ORDER_OUT;
+		arbFunc.order.DataBytes = 4;
+		arbFunc.order.Index = FLASH_FPGA_START_PAGE;
+		chData[0] = size & 0xff;
+		chData[1] = size >> 8 & 0xff;
+		chData[2] = size >> 16 & 0xff;
+		chData[3] = size >> 24 & 0xff;
+		m_sensorInUse->ArbitrFunc((void*)& arbFunc);
+		//start write file to flash
+		arbFunc.FuncNum = 0xE1;
+		arbFunc.order.ReqCode = arbFunc.FuncNum;
+		arbFunc.order.pData = chData;
+		arbFunc.order.Direction = ORDER_OUT;
+		arbFunc.order.DataBytes = buffsize;
+		long offset = 0;
+		int pagecnt = 1;//page 0 is taken for file size
+		clock_t start, finish;
+		double totaltime;
+		start = clock();
+		while (offset < size)
+		{
+
+			arbFunc.order.Index = FLASH_FPGA_START_PAGE + pagecnt;
+
+			if (offset + buffsize <= size)
+			{
+				arbFunc.order.DataBytes = buffsize;
+				memcpy(chData, memblock + offset, buffsize);
+				offset += buffsize;
+			}
+			else if (offset + buffsize > size)
+			{
+				long wrsize = size - offset;
+				arbFunc.order.DataBytes = wrsize;
+				memcpy(chData, memblock + offset, wrsize);
+				offset += wrsize;
+			}
+			m_sensorInUse->ArbitrFunc((void*)& arbFunc);
+			pagecnt++;
+
+		}
+
+		finish = clock();
+		totaltime = (double)(finish - start) / CLOCKS_PER_SEC;
+		delete[] memblock;
+	}
+}
+void CusbCamConsoleDlg::readEE()
+{
+	arbFuncStruct arbFunc;
+	const int buffsize = 256;
+	cq_uint8_t		chData[buffsize];
+	arbFunc.FuncNum = 0xBB;
+	arbFunc.order.ReqCode = arbFunc.FuncNum;
+	arbFunc.order.pData = chData;
+	arbFunc.order.Direction = ORDER_IN;
+	arbFunc.order.DataBytes = 4;
+	arbFunc.order.Value = 1;
+	arbFunc.order.Index = 0;
+	m_sensorInUse->ArbitrFunc((void*)& arbFunc);
+	int data=chData[0];
+}
+void  CusbCamConsoleDlg::writeEE()
+{
+	arbFuncStruct arbFunc;
+	const int buffsize = 256;
+	cq_uint8_t		chData[buffsize];
+	arbFunc.FuncNum = 0xBA;
+	arbFunc.order.ReqCode = arbFunc.FuncNum;
+	arbFunc.order.pData = chData;
+	arbFunc.order.Direction = ORDER_OUT;
+	arbFunc.order.Value = 1;
+	arbFunc.order.Index = 0;
+	arbFunc.order.DataBytes = 4;
+	chData[0] = 0x11;
+	chData[1] = 0x22;
+	chData[2] = 0x33;
+	chData[3] = 0x44;
+	m_sensorInUse->ArbitrFunc((void*)& arbFunc);
 }
 void CusbCamConsoleDlg::readFpgaFile()
 {
@@ -208,7 +409,7 @@ void CusbCamConsoleDlg::readFpgaFile()
 		file.close();
 		//write to flash
 		arbFuncStruct arbFunc;
-		const int buffsize = 128;
+		const int buffsize = 512;
 		cq_uint8_t		chData[buffsize];//usb3.0, 64 for usb2.0
 		//arbFunc.FuncNum = 0xE0;//read flash
 		//arbFunc.FuncNum = 0xE1;//write flash
@@ -226,11 +427,16 @@ void CusbCamConsoleDlg::readFpgaFile()
 		arbFunc.order.ReqCode = arbFunc.FuncNum;
 		arbFunc.order.pData = chData;
 		arbFunc.order.Direction = ORDER_OUT;
+		arbFunc.order.DataBytes = buffsize;
 		long offset = 0;
 		int pagecnt = 0;
+		clock_t start, finish;
+		double totaltime;
+		start = clock();
 		while(offset<size)
 		{
-			arbFunc.order.Index = FLASH_START_PAGE + pagecnt;
+
+			arbFunc.order.Index = FLASH_FPGA_START_PAGE + pagecnt;
 
 			if (offset + buffsize <= size)
 			{
@@ -247,8 +453,11 @@ void CusbCamConsoleDlg::readFpgaFile()
 			}
 			m_sensorInUse->ArbitrFunc((void*)&arbFunc);
 			pagecnt++;
+
 		}
 
+		finish = clock();
+		totaltime = (double)(finish - start) / CLOCKS_PER_SEC;
 		arbFunc.FuncNum = 0xE6;
 		arbFunc.order.ReqCode = arbFunc.FuncNum;
 		arbFunc.order.pData = chData;
@@ -325,42 +534,37 @@ BEGIN_MESSAGE_MAP(CusbCamConsoleDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_RADIO_TRIGMODE_FPGA, &CusbCamConsoleDlg::OnBnClickedRadioTrigmodeFpga)
 	ON_BN_CLICKED(IDC_RADIO_TRIGMODE_SOFT, &CusbCamConsoleDlg::OnBnClickedRadioTrigmodeSoft)
 	ON_BN_CLICKED(IDC_RADIO_TRIGMODE_EXT, &CusbCamConsoleDlg::OnBnClickedRadioTrigmodeExt)
-	ON_BN_CLICKED(IDC_BUTTON_WR_FPGA, &CusbCamConsoleDlg::OnBnClickedButtonWrFpga)
-	ON_BN_CLICKED(IDC_BUTTON_RD_FPGA, &CusbCamConsoleDlg::OnBnClickedButtonRdFpga)
 	ON_EN_CHANGE(IDC_EDIT_FPGATRIG_FREQ, &CusbCamConsoleDlg::OnEnChangeEditFpgatrigFreq)
-	ON_BN_CLICKED(IDC_BUTTON_SOFT_TRIG, &CusbCamConsoleDlg::OnBnClickedButtonSoftTrig)
 	ON_BN_CLICKED(IDC_RADIO_MIRROR_NORMAL, &CusbCamConsoleDlg::OnBnClickedRadioMirrorNormal)
 	ON_BN_CLICKED(IDC_RADIO_MIRROR_X, &CusbCamConsoleDlg::OnBnClickedRadioMirrorX)
 	ON_BN_CLICKED(IDC_RADIO_MIRROR_Y, &CusbCamConsoleDlg::OnBnClickedRadioMirrorY)
 	ON_BN_CLICKED(IDC_RADIO_MIRROR_XY, &CusbCamConsoleDlg::OnBnClickedRadioMirrorXy)
 	ON_BN_CLICKED(IDC_CHECK_AUTOGAIN, &CusbCamConsoleDlg::setAutoGainExpo)
-	ON_BN_CLICKED(IDC_BUTTON_RD_DEV_ID, &CusbCamConsoleDlg::OnBnClickedButtonRdDevId)
-	ON_BN_CLICKED(IDC_BUTTON_WR_DEV_ID, &CusbCamConsoleDlg::OnBnClickedButtonWrDevId)
-	ON_BN_CLICKED(IDC_BUTTON_RD_DEV_SN, &CusbCamConsoleDlg::OnBnClickedButtonRdDevSn)
 	ON_BN_CLICKED(IDC_BUTTON_WR_DEV_SN, &CusbCamConsoleDlg::OnBnClickedButtonWrDevSn)
 	ON_CBN_SELCHANGE(IDC_COMBO1, &CusbCamConsoleDlg::OnCbnSelchangeCombo1)
 	ON_BN_CLICKED(IDC_BUTTON_CAM_FUNC, &CusbCamConsoleDlg::OnBnClickedButtonCamFunc)
 	ON_BN_CLICKED(IDC_BUTTON_GEN_FUNC, &CusbCamConsoleDlg::OnBnClickedButtonGenFunc)
-	ON_BN_CLICKED(IDC_BUTTON_WR_SEN, &CusbCamConsoleDlg::OnBnClickedButtonWrSen)
-	/*ON_BN_CLICKED(IDC_CHECK_CAM1, &CusbCamConsoleDlg::OnBnClickedCheckCam1)
-	ON_BN_CLICKED(IDC_CHECK_CAM2, &CusbCamConsoleDlg::OnBnClickedCheckCam1)
-	ON_BN_CLICKED(IDC_CHECK_CAM3, &CusbCamConsoleDlg::OnBnClickedCheckCam1)*/
+	ON_BN_CLICKED(IDC_BUTTON_TEST, &CusbCamConsoleDlg::OnBnClickedButtonTest)
+	ON_BN_CLICKED(IDC_BUTTON_EE, &CusbCamConsoleDlg::OnBnClickedButtonTest2)
 
-
+	ON_BN_CLICKED(IDC_BUTTON_RDTEMP, &CusbCamConsoleDlg::OnBnClickedButtonRdtemp)
+	ON_BN_CLICKED(IDC_RADIO_MOTOR, &CusbCamConsoleDlg::OnBnClickedRadioIo1)
+	ON_BN_CLICKED(IDC_RADIO_FAN, &CusbCamConsoleDlg::OnBnClickedRadioIo1)
+	ON_BN_CLICKED(IDC_RADIO_IO0, &CusbCamConsoleDlg::OnBnClickedRadioIo1)
+	ON_BN_CLICKED(IDC_RADIO_IO1, &CusbCamConsoleDlg::OnBnClickedRadioIo1)
+	ON_BN_CLICKED(IDC_BUTTON_SET640, &CusbCamConsoleDlg::OnBnClickedButtonSet640)
+	ON_BN_CLICKED(IDC_BUTTON_RDEE, &CusbCamConsoleDlg::OnBnClickedButtonRdee)
 	ON_WM_DEVICECHANGE()
 	ON_WM_CLOSE()
+	
+	
 END_MESSAGE_MAP()
 
-
-// CusbCamConsoleDlg ��Ϣ��������
 
 BOOL CusbCamConsoleDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
 
-	// ��������...���˵������ӵ�ϵͳ�˵��С�
-
-	// IDM_ABOUTBOX ������ϵͳ���Χ�ڡ�
 	ASSERT((IDM_ABOUTBOX & 0xFFF0) == IDM_ABOUTBOX);
 	ASSERT(IDM_ABOUTBOX < 0xF000);
 
@@ -378,16 +582,16 @@ BOOL CusbCamConsoleDlg::OnInitDialog()
 		}
 	}
 
-	// ���ô˶Ի����ͼ�ꡣ��Ӧ�ó��������ڲ��ǶԻ���ʱ����ܽ��Զ�
-	//  ִ�д˲���
-	SetIcon(m_hIcon, TRUE);			// ���ô�ͼ��
-	SetIcon(m_hIcon, FALSE);		// ����Сͼ��
 
-	// TODO: �ڴ����Ӷ���ĳ�ʼ������
+	SetIcon(m_hIcon, TRUE);			
+	SetIcon(m_hIcon, FALSE);		
+
 	selectChannel.InsertString(0, _T("0"));
 	selectChannel.InsertString(1, _T("1"));
 	selectChannel.InsertString(2, _T("2"));
+	selectChannel.InsertString(3, _T("ALL"));
 	int j = 0;
+	selectGenFunc.InsertString(j++, _T("IO_1(0,1)"));
 	selectGenFunc.InsertString(j++, _T("Motor(0,1)"));
 	selectGenFunc.InsertString(j++, _T("Fan(0,1)"));
 	selectGenFunc.InsertString(j++, _T("IO_0(0,1)"));
@@ -418,7 +622,7 @@ BOOL CusbCamConsoleDlg::OnInitDialog()
 	/*((CButton*)GetDlgItem(IDC_CHECK_CAM1))->SetCheck(1);
 	((CButton*)GetDlgItem(IDC_CHECK_CAM2))->SetCheck(1);
 	((CButton*)GetDlgItem(IDC_CHECK_CAM3))->SetCheck(1);*/
-	return TRUE;  // ���ǽ��������õ��ؼ������򷵻� TRUE
+	return TRUE;  
 }
 
 void CusbCamConsoleDlg::OnSysCommand(UINT nID, LPARAM lParam)
@@ -434,9 +638,6 @@ void CusbCamConsoleDlg::OnSysCommand(UINT nID, LPARAM lParam)
 	}
 }
 
-// �����Ի���������С����ť������Ҫ����Ĵ���
-//  �����Ƹ�ͼ�ꡣ����ʹ���ĵ�/��ͼģ�͵� MFC Ӧ�ó���
-//  �⽫�ɿ���Զ���ɡ�
 
 void CusbCamConsoleDlg::OnPaint()
 {
@@ -475,15 +676,19 @@ HCURSOR CusbCamConsoleDlg::OnQueryDragIcon()
 
 void CusbCamConsoleDlg::OnBnClickedButtonOpenUsb()
 {
-	// TODO: �ڴ����ӿؼ�֪ͨ�����������
-	if (m_sensorInUse->OpenUSB(0)<0)
+	CString str;
+	GetDlgItemText(IDC_EDIT_USBNUM, str);
+	unsigned char usbnum = _tstoi(str);
+	if (usbnum < 0)
+		usbnum = 0;
+	if (m_sensorInUse->OpenUSB(usbnum)<0)
 	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"��USBʧ�ܡ�");
+		SetDlgItemText(IDC_STATIC_STATUS, L"Usb Open failed");
 		return;
 	}
 	m_bIsCamSelected=true;
 
-	SetDlgItemText(IDC_STATIC_STATUS, L"��USB�ɹ���");
+	SetDlgItemText(IDC_STATIC_STATUS, L"usb OK");
 	m_bUsbOpen = true;
 
 
@@ -506,9 +711,7 @@ void CusbCamConsoleDlg::OnBnClickedButtonOpenUsb()
 		CString str("Unknown USB speed");
 		SetDlgItemText(IDC_STATIC_STATUS, str);
 	}
-	//readFpgaFile();
-	//cmdTest();
-	//readFlash();
+
 
 }
 
@@ -519,7 +722,7 @@ void CusbCamConsoleDlg::OnBnClickedButtonCloseUsb()
 	// TODO: �ڴ����ӿؼ�֪ͨ�����������
 	if (!m_bUsbOpen)
 	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USBδ�򿪻��Ѿ��رա�");
+		SetDlgItemText(IDC_STATIC_STATUS, L"USB Closed");
 		return;
 	}
 	OnBnClickedButtonStopCap();
@@ -541,7 +744,7 @@ void CusbCamConsoleDlg::OnBnClickedButtonStopCap()
 
 	if(m_sensorInUse->StopCap()!=0)
 	{
-		SetDlgItemText(IDC_STATIC_STATUS,L"USB��δ�ɼ�");
+		SetDlgItemText(IDC_STATIC_STATUS,L"USB stop error");
 		return;
 	}
 	WaitForSingleObject(g_mutexDisp, INFINITE);
@@ -563,7 +766,7 @@ void CusbCamConsoleDlg::OnBnClickedButtonStopCap()
 	GetDlgItem(IDC_CHECK_SAVE_VEDIO)->EnableWindow(true);
 #endif
 	m_bIsCapturing = false;
-	SetDlgItemText(IDC_STATIC_STATUS, L"ֹͣ�ɼ���");
+	SetDlgItemText(IDC_STATIC_STATUS, L"ͣusb closed");
 	if (imgBuf != NULL)
 	{
 		delete imgBuf;
@@ -589,7 +792,7 @@ void CusbCamConsoleDlg::OnBnClickedButtonVedioCap()
 		/************************************************************/
 	if (!m_bUsbOpen)
 	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USBδ�򿪡�");
+		SetDlgItemText(IDC_STATIC_STATUS, L"USB start cap");
 		return;
 	}
 	if (true == m_bIsCapturing)
@@ -620,7 +823,7 @@ void CusbCamConsoleDlg::OnBnClickedButtonVedioCap()
 
 	if (m_sensorInUse->StartCap(camctrl.getTotalDataLen(), 1, CapImgEntry, this)<0)
 	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USB�豸��ʧ�ܣ�");
+		SetDlgItemText(IDC_STATIC_STATUS, L"cap error");
 #if 0
 		GetDlgItem(IDC_RADIO1)->EnableWindow(true);
 		GetDlgItem(IDC_RADIO2)->EnableWindow(true);
@@ -640,7 +843,7 @@ void CusbCamConsoleDlg::OnBnClickedButtonVedioCap()
 	SetTimer(1, 1000, NULL);
 
 	m_bIsCapturing = true;
-	SetDlgItemText(IDC_STATIC_STATUS, L"�ɼ���...");
+	SetDlgItemText(IDC_STATIC_STATUS, L"cap...");
 }
 
 
@@ -663,13 +866,32 @@ void CusbCamConsoleDlg::OnTimer(UINT_PTR nIDEvent)
 				m_sensorInUse->GetRecvFrameCnt(iFrameCntPerSec);
 				m_sensorInUse->ClearRecvFrameCnt();
 				str.Format(L"%d Fps     %0.4f MBs", iFrameCntPerSec,float(iByteCntPerSec)/1024.0/1024.0);		 
-				HWND hWnd = (HWND)cvGetWindowHandle("disp");//��ȡ�Ӵ��ڵ�HWND
-				HWND hParentWnd = ::GetParent(hWnd);//��ȡ������HWND��������������Ҫ�õ�			
+				HWND hWnd = (HWND)cvGetWindowHandle("disp");
+				HWND hParentWnd = ::GetParent(hWnd);		
 				if(hParentWnd !=NULL)
 				{
 					::SetWindowText(hParentWnd,str);
 				}			
+				/*
+				if (f_testStatus <2)
+				{
+					camctrl.setGenFunction(3, 0);
+					Sleep(500);
+					for (int ctrlcnt = 0; ctrlcnt < 5; ctrlcnt++)
+					{
+						Sleep(10);
+						camctrl.setGenFunction(0, 1);
+					}
+					Sleep(20);
+					camctrl.setGenFunction(3, 1);
+					
+					f_testStatus = 2;
+				}
+				*/
 				break;
+
+					
+
 				ReleaseMutex(g_mutexTimer);
 			}
 		default:
@@ -923,12 +1145,7 @@ unsigned int CusbCamConsoleDlg::str2hex(CString str)
 
 void CusbCamConsoleDlg::OnEnChangeEditFpgatrigFreq()
 {
-	// TODO:  ����ÿؼ��� RICHEDIT �ؼ���������
-	// ���ʹ�֪ͨ��������д CDialogEx::OnInitDialog()
-	// ���������� CRichEditCtrl().SetEventMask()��
-	// ͬʱ�� ENM_CHANGE ��־�������㵽�����С�
 
-	// TODO:  �ڴ����ӿؼ�֪ͨ�����������
 	if (!m_bUsbOpen)
 	{
 		SetDlgItemText(IDC_STATIC_STATUS, L"USBδ�򿪡�");
@@ -1021,85 +1238,6 @@ void CusbCamConsoleDlg::setAutoGainExpo()
 }
 
 
-
-
-void CusbCamConsoleDlg::OnBnClickedButtonWrEeprom()
-{
-	// TODO: �ڴ����ӿؼ�֪ͨ�����������
-	if (!m_bUsbOpen)
-	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USBδ�򿪡�");
-		return;
-	}
-	CString strAddr, strValue;
-
-	GetDlgItemText(IDC_EDIT_EEPROM_ADDR, strAddr);
-	GetDlgItemText(IDC_EDIT_EEPROM_VALUE, strValue);
-
-	cq_uint16_t iAddr = str2hex(strAddr);
-	cq_uint16_t iValue = str2hex(strValue);
-
-	m_sensorInUse->WrEeprom(iAddr, iValue);
-	SetDlgItemText(IDC_STATIC_STATUS, L"дEEPROM��");
-}
-
-
-void CusbCamConsoleDlg::OnBnClickedButtonRdEeprom()
-{
-	// TODO: �ڴ����ӿؼ�֪ͨ�����������
-	if (!m_bUsbOpen)
-	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USBδ�򿪡�");
-		return;
-	}
-	CString strAddr;
-	GetDlgItemText(IDC_EDIT_EEPROM_ADDR, strAddr);
-	cq_uint32_t iAddr = str2hex(strAddr);
-	cq_uint8_t irxval;
-	cq_uint32_t len=1;
-	m_sensorInUse->RrEeprom(iAddr, &irxval,len);
-	CString s_temp;
-	s_temp.Format(_T("%02x"), irxval);
-	SetDlgItemText(IDC_EDIT_EEPROM_VALUE, s_temp);
-	SetDlgItemText(IDC_STATIC_STATUS, L"��EEPROM��");
-}
-
-
-void CusbCamConsoleDlg::OnBnClickedButtonRdDevId()
-{
-	// TODO: �ڴ����ӿؼ�֪ͨ�����������
-	if (!m_bUsbOpen)
-	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USBδ�򿪡�");
-		return;
-	}
-	CString strValue;
-	cq_uint8_t iValue = 0;
-	cq_uint32_t len=1;
-	m_sensorInUse->RdDevID(&iValue,len);
-	strValue.Format(_T("%02x"), iValue);
-	SetDlgItemText(IDC_EDIT_DEVID, strValue);
-	SetDlgItemText(IDC_STATIC_STATUS, L"��ID�ɹ���");
-}
-
-
-void CusbCamConsoleDlg::OnBnClickedButtonWrDevId()
-{
-	// TODO: �ڴ����ӿؼ�֪ͨ�����������
-	if (!m_bUsbOpen)
-	{
-		SetDlgItemText(IDC_STATIC_STATUS, L"USBδ�򿪡�");
-		return;
-	}
-	CString strValue;
-	GetDlgItemText(IDC_EDIT_DEVID, strValue);
-	cq_uint8_t iValue = str2hex(strValue);
-	cq_uint32_t len=1;
-	m_sensorInUse->WrDevID(&iValue,len);
-	SetDlgItemText(IDC_STATIC_STATUS, L"����ID�ɹ���");
-}
-
-
 void CusbCamConsoleDlg::OnBnClickedButtonRdDevSn()
 {
 	// TODO: �ڴ����ӿؼ�֪ͨ�����������
@@ -1189,6 +1327,8 @@ void CusbCamConsoleDlg::OnCbnSelchangeCombo1()
 
 void CusbCamConsoleDlg::OnBnClickedButtonCamFunc()
 {
+
+	
 	OnCbnSelchangeCombo1();
 	int camfunc = selectCamFunc.GetCurSel();
 	CString str;
@@ -1198,6 +1338,10 @@ void CusbCamConsoleDlg::OnBnClickedButtonCamFunc()
 	{
 		camctrl.setCamFunction(camfunc, v);
 	}
+
+	
+	
+
 }
 
 
@@ -1234,4 +1378,142 @@ void CusbCamConsoleDlg::OnBnClickedButtonWrSen()
 void CusbCamConsoleDlg::OnBnClickedButtonSave()
 {
 	savefile = 1;
+}
+
+
+void CusbCamConsoleDlg::OnBnClickedButtonTest()
+{
+	//writeFPGAfile();
+	//readFpgaFile();
+	/*
+	writeEE();
+	Sleep(100);
+	readEE();
+	readUserFlash();
+	eraseUserFlash();
+	writeUserFlash();
+	*/
+	
+}
+
+
+void CusbCamConsoleDlg::OnBnClickedButtonTest2()
+{
+	int pos = 0;
+	int value = 0;
+	CString str;
+	arbFuncStruct arbFunc;
+	const int buffsize = 256;
+	cq_uint8_t		chData[buffsize];
+	arbFunc.FuncNum = 0xBA;
+	arbFunc.order.ReqCode = arbFunc.FuncNum;
+	arbFunc.order.pData = chData;
+	arbFunc.order.Direction = ORDER_OUT;
+	arbFunc.order.Value = 1;
+	arbFunc.order.Index = 0;
+	arbFunc.order.DataBytes = 32;
+	chData[pos++] = 'C';
+	chData[pos++] = 'C';
+	chData[pos++] = 'H';
+	chData[pos++] = 'V';
+	//dev ver
+	GetDlgItemText(IDC_EDIT_FPGATRIG_FREQ2, str);
+	value = _tstoi(str);
+	chData[pos++] = value >> 8;
+	chData[pos++] = value &0xff;
+	//fpga ver
+	GetDlgItemText(IDC_EDIT_FPGATRIG_FREQ3, str);
+	value = _tstoi(str);
+	chData[pos++] = value >> 8;
+	chData[pos++] = value & 0xff;
+	//sn
+	GetDlgItemText(IDC_EDIT_FPGATRIG_FREQ4, str);
+	value = _tstoi(str);
+	chData[pos++] = value >> 8;
+	chData[pos++] = value & 0xff;
+	//sn2
+	chData[pos++] = 0;
+	chData[pos++] = 0;
+	chData[pos++] = 1;//pintai
+	//Date(191031)
+	GetDlgItemText(IDC_EDIT_FPGATRIG_FREQ5, str);
+	value = _tstoi(str);
+	chData[pos++] = value >> 16;
+	chData[pos++] = value >> 8;
+	chData[pos++] = value & 0xff;
+	m_sensorInUse->ArbitrFunc((void*)& arbFunc);
+
+	str.ReleaseBuffer();
+
+	
+}
+
+
+void CusbCamConsoleDlg::OnBnClickedButtonRdtemp()
+{
+	CString strValue;
+	int temp = camctrl.getTemp();
+	strValue.Format(_T("%d"), temp);
+	SetDlgItemText(IDC_EDIT_FPGATRIG_FREQ6, strValue);
+
+}
+
+void CusbCamConsoleDlg::OnBnClickedRadioIo1()
+{
+	int btnfunc = 0;
+	for (int i = 0; i < 4; i++)
+	{
+		CButton* m_ctlCheck = (CButton*)GetDlgItem(IDC_RADIO_IO1 + i);
+		btnfunc = m_ctlCheck->GetCheck();
+		if (btnfunc > 0)
+			break;
+	}
+	CString str;
+	GetDlgItemText(IDC_EDIT_SENSOR_REGISTER_ADDR, str);
+	int value = _tstoi(str);
+	camctrl.setGenFunction(btnfunc, value);
+}
+
+
+
+void CusbCamConsoleDlg::OnBnClickedButtonSet640()
+{
+	camctrl.setCamFunction(0, 0);
+	camctrl.setCamFunction(1, 0);
+	camctrl.setCamFunction(2, 639);
+	camctrl.setCamFunction(3, 479);
+
+}
+
+
+void CusbCamConsoleDlg::OnBnClickedButtonRdee()
+{
+
+	int pos = 0;
+	int value = 0;
+	CString str;
+	arbFuncStruct arbFunc;
+	const int buffsize = 256;
+	cq_uint8_t		chData[buffsize];
+
+	arbFunc.FuncNum = 0xBB;
+	arbFunc.order.ReqCode = arbFunc.FuncNum;
+	arbFunc.order.pData = chData;
+	arbFunc.order.Direction = ORDER_IN;
+	arbFunc.order.DataBytes = 128;
+	arbFunc.order.Value = 1;
+	arbFunc.order.Index = 0;
+	arbFunc.order.pData = chData;
+	m_sensorInUse->ArbitrFunc((void*)& arbFunc);
+
+	CString strValue;
+	strValue.Format(_T("%c,%c,%c,%c"), chData[0], chData[1], chData[2], chData[3]);
+	CString temp;
+	for (int i = 4; i < 16; i++)
+	{
+		temp.Format(_T("% d"), chData[i]);
+		strValue += temp;
+	}
+	SetDlgItemText(IDC_EDIT_RDEE, strValue);
+	//watch chData
 }

@@ -465,7 +465,7 @@ public:
 	CusbCamConsoleDlg(CWnd* pParent = NULL);	// 标准构造函数
 
 	~CusbCamConsoleDlg();
-
+	static void CapImgEntry(LPVOID lpParam, LPVOID lpObject) { ((CusbCamConsoleDlg*)lpObject)->Disp(lpParam); };
 // 对话框数据
 	enum { IDD = IDD_USBCAMCONSOLE_DIALOG };
 
@@ -486,7 +486,7 @@ protected:
 public:
 
 private:
-
+	void Disp(void* lpParam);
 public:
 	afx_msg void OnBnClickedButtonOpenUsb();
 	afx_msg void OnBnClickedButtonInitSensor();

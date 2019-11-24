@@ -21,6 +21,7 @@ public:
     cq_int64_t m_timeStamp;
 	cq_uint8_t mode;
 	cq_uint8_t mode2;
+	cq_uint8_t temper;
     cq_uint8_t* m_imgBuf;
 	
     CImgFrame(const cq_int32_t width, const cq_int32_t height, const cq_int32_t camNum):m_width(width),m_height(height),m_camNum(camNum)

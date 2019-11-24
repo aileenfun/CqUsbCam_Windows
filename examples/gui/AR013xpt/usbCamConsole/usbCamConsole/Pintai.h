@@ -2,6 +2,13 @@
 #include "CqUsbCam.h"
 #include <vector>
 #define CAM_NUM 3
+
+struct arbFuncStruct
+{
+	int FuncNum;
+
+	USB_ORDER order;
+};
 typedef enum CamRegAddr
 {
 	Reg_ROI_Y_START = 0x33bb0110,
@@ -21,7 +28,8 @@ typedef enum CamRegAddr
 };
 typedef enum GeneralFunc
 {
-	Reg_MOTOR = 0x33bb0103,
+	Reg_IO_1= 0x33bb0102,
+	Reg_MOTOR= 0x33bb0103,
 	Reg_FAN,
 	Reg_IO_0,
 	Reg_CAM_MODE,
@@ -52,6 +60,7 @@ public:
 		m_sensorInUse = u;
 		Reg_CAM_OFFSET = 0x10;
 	}
+	
 	int getCamRes()
 	{
 		unsigned int  regvalue = 0;
@@ -129,7 +138,8 @@ public:
 	}
 	int setGenFunction(int s, int value)
 	{
-		cam[0].wrCamCmd(s + Reg_MOTOR, value);
+		cam[0].wrCamCmd(s + Reg_IO_1, value);
+		//cam[0].wrCamCmd(s + Reg_MOTOR, value);
 		return 0;
 	}
 	int wrCamCmd(int addr, int value)
@@ -154,6 +164,48 @@ public:
 			}
 		}
 		return 0;
+	}
+	int isCQ()
+	{
+		char cchv[] = { 'C','C','H','V' };
+		cq_uint32_t value[4];
+		for (int i = 0; i < 4; i++)
+		{
+			cam[0].m_sensorInUse->RdFpgaReg(0x80 + i, value[i]);
+			if (value[i] != cchv[i])
+				return -1;
+		}
+		return 1;
+	}
+
+	int getVer(cq_uint32_t *v)
+	{
+		if (v == NULL)
+			return -1;
+		cq_uint32_t value[4];
+		for (int i = 0; i < 4; i++)
+		{
+			cam[0].m_sensorInUse->RdFpgaReg(0x84 + i, value[i]);
+		}
+		memcpy(v, value, 4 * sizeof(cq_uint32_t));
+
+	}
+	int getSerialNum(cq_uint32_t *v)
+	{
+		if (v == NULL)
+			return -1;
+		cq_uint32_t value[4];
+		for (int i = 0; i < 4; i++)
+		{
+			cam[0].m_sensorInUse->RdFpgaReg(0x8C + i, value[i]);
+		}
+		memcpy(v, value, 4 * sizeof(cq_uint32_t));
+	}
+	int getTemp()
+	{
+		cq_uint32_t value;
+		cam[0].m_sensorInUse->RdFpgaReg(0x91, value);
+		return value;
 	}
 
 };

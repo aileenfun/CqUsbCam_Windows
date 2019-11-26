@@ -811,8 +811,8 @@ void CusbCamConsoleDlg::OnBnClickedButtonVedioCap()
 #endif
 
 	cv::namedWindow("disp");
-	cv::namedWindow("cam1");
-	cv::namedWindow("cam2");
+	//cv::namedWindow("cam1");
+	//cv::namedWindow("cam2");
 	HWND hWnd = (HWND)cvGetWindowHandle("disp");//��ȡ�Ӵ��ڵ�HWND
 	HWND hParentWnd = ::GetParent(hWnd);//��ȡ������HWND��������������Ҫ�õ�
 	 //���ش��ڱ����� 
@@ -1321,7 +1321,17 @@ void CusbCamConsoleDlg::OnCbnSelchangeCombo1()
 		camctrl.cam[i].checked = 0;
 	}
 	show_channel = selectChannel.GetCurSel();
-	camctrl.cam[show_channel].checked = 1;
+	if (show_channel == 4)
+	{
+		for (int i = 0; i < 3; i++)
+		{
+			camctrl.cam[i].checked = 1;
+		}
+	}
+	else
+	{
+		camctrl.cam[show_channel].checked = 1;
+	}
 }
 
 

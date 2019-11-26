@@ -454,8 +454,8 @@ static cq_int32_t AR0135_ArbitrFunc(CCyUSBDevice *pUsbHandle,LPVOID arg)
 {
 	arbFuncStruct arbfunc;
 	memcpy(&arbfunc,(arbFuncStruct*)arg,sizeof(arbFuncStruct));
-
 	SendOrder(pUsbHandle, &arbfunc.order);
+	
 	return 1;
 }
 static tagSensor sensor_AR0135=

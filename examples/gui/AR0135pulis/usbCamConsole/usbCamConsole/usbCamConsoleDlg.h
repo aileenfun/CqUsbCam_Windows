@@ -94,12 +94,30 @@ public:
 	}
 };
 
-struct RegSettingsStruct
+class RegSettingsStruct
 {
+public:
 	int s;
 	int funcNum;
 	int value;
+	int sendAddr;
+public:
+	vector<int> addrlist;
+public:
+	RegSettingsStruct()
+	{
+		addrlist.push_back(0x0b);
+		addrlist.push_back(0x10);
+		addrlist.push_back(0x15);
+		addrlist.push_back(0x1A);
+		addrlist.push_back(0x20);
+		addrlist.push_back(0x21);
+		addrlist.push_back(0x22);
+		addrlist.push_back(0x23);
+		addrlist.push_back(0x24);
+	}
 };
+
 
 class SensorSettingClass
 {
@@ -196,7 +214,7 @@ public:
 		actCmd();
 
 		regSettings.funcNum = Reg_SENSOR_REG4;
-		regSettings.value = value && 0xff;
+		regSettings.value = value & 0xff;
 		actCmd();
 
 		regSettings.funcNum = Reg_SENSOR_SELECT;
@@ -262,10 +280,12 @@ public:
 		switch (gain)
 		{
 		case 16://16
-			wrSensorCmd(CameraNum+1, 0x305E, 0x2020);
+			//wrSensorCmd(CameraNum+1, 0x305E, 0x2020);
+			wrSensorCmd(0, 0x305E, 0x2020);
 			break;
 		case 32://32
-			wrSensorCmd(CameraNum+1, 0x305E, 0x2030);
+			//wrSensorCmd(CameraNum+1, 0x305E, 0x2030);
+			wrSensorCmd(0, 0x305E, 0x2030);
 			break;
 		}
 		
@@ -308,7 +328,18 @@ public:
 	{
 		if (m_sensorInUse == NULL)
 			return;
-		m_sensorInUse->ArbitrFunc(&regSettings);
+
+		//WrFpgaReg_t();
+		if (regSettings.funcNum < 4)
+		{
+			regSettings.sendAddr = regSettings.addrlist[regSettings.funcNum] + CameraNum;
+		}
+		else
+		{
+			regSettings.sendAddr = regSettings.addrlist[regSettings.funcNum];
+		}
+		m_sensorInUse->WrFpgaReg(regSettings.sendAddr, regSettings.value);
+		//m_sensorInUse->ArbitrFunc(&regSettings);
 	}
 };
 class PLSFiveCam
@@ -415,14 +446,13 @@ public:
 		mplsCam[c].checked= s;
 		return 0;
 	}
+
 	int setFunction(int s,int value)
 	{
 		for (int i = 0; i < 5; i++)
 		{
 			if (mplsCam[i].checked == 1)
 			{
-				
-				
 				mplsCam[i].useFuncList(s, value);
 				/*
 				switch (s)
@@ -444,6 +474,7 @@ public:
 				*/
 			}
 		}
+
 		return 0;
 	}
 };

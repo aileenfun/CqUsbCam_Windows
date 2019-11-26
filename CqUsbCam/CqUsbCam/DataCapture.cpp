@@ -184,7 +184,10 @@ int CDataCapture::ThreadFunc()
 		    Input(m_pReadBuff,transferred);
 		    m_lRecvByteCnt+=transferred;
 		}
-		//Sleep(1);//deleted by qbc
+		else
+		{
+			Sleep(1);//deleted by qbc
+		}
 	}
 	ReleaseMutex(m_mutexThread);
 	return 0;
@@ -201,10 +204,10 @@ cq_int32_t CDataCapture::ReadData( cq_uint8_t* pbuff, cq_int64_t &lBytes )
 			m_pUsbHandle->BulkInEndPt->SetXferSize(lBytes);
 		}
 		if(temp=m_pUsbHandle->BulkInEndPt->XferData((PUCHAR)pbuff,lBytes))
-		{
-			Sleep(1);
+		{ 
 			return 0;
 		}
+		
 	}
 	else
 	{

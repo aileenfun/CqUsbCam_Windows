@@ -9,7 +9,7 @@
 #include <cv.hpp>
 #include <opencv.hpp>
 #include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
+//#include <opencv2/highgui/highgui.hpp>
 #include "afxwin.h"
 #include <iostream> 
 #include <fstream> 
@@ -247,6 +247,10 @@ public:
 		{
 			//make sure roi is in range
 		}
+		regSettings.funcNum = Reg_ROI;
+		regSettings.value = 0;
+		actCmd();
+		Sleep(200);
 		sensorSettings.ROIposX = x;
 		sensorSettings.ROIposY = y;
 		regSettings.funcNum = Reg_ROI;
@@ -515,7 +519,8 @@ protected:
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
 public:
-
+	int f_snap;
+	float gamma;
 private:
 	void Disp(void* lpParam);
 public:
@@ -584,4 +589,12 @@ public:
 	afx_msg void OnBnClickedButtonSaveConfig2();
 	
 	afx_msg void OnBnClickedButtonLoadConfig();
+	afx_msg void OnBnClickedButton2();
+	afx_msg void OnBnClickedBtnSnap();
+	afx_msg void OnEnChangeEdit3();
+	afx_msg void OnBnClickedButtonExpoSet3();
+	unsigned char lut[256];
+
+	void doGamma(cv::Mat& src, cv::Mat& dst);
+	//void on_mouse(int event, int x, int y, int flags, void* ustc);
 };

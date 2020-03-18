@@ -168,12 +168,12 @@ int CDataCapture::ThreadFunc()
 	while (true==m_bCapture)
 	{
 		transferred=m_iWidth*m_iHeight+512;
-		//if (transferred > 1048576)
-			//transferred = 1048576;
-		//if (transferred > 2097152)
-			//transferred = 2097152;
+		if (transferred > 1048576)
+			transferred = 1048576;
+		/*if (transferred > 2097152)
+			transferred = 2097152;*/
 		//if (transferred > 3145728)
-			//transferred = 3145728;
+		//	transferred = 3145728;
 		ReadData(m_pReadBuff,transferred);
 
         if(transferred>0)

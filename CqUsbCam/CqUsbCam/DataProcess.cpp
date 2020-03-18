@@ -101,8 +101,7 @@ int CDataProcess::ThreadFunc()
 
 	CImgFrame* imgfrm;//be careful of this*********************
 	
-	//pthread_mutex_lock(&m_mutexThread);
-	WaitForSingleObject(m_mutexThread, INFINITE);
+	//WaitForSingleObject(m_mutexThread, INFINITE);
 	
 	while(true==m_bProcess)
 	{

@@ -30,9 +30,4 @@
 #include "CqUsbCam.h"
 
 
-CQUSBCAM_API cq_int32_t OpenUSB(cq_uint32_t usbNum);
-
-
-
-
 #endif //_CQUSBCAM_API_H_

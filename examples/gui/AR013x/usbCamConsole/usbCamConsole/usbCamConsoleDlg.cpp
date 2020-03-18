@@ -20,10 +20,11 @@ HANDLE g_mutexDisp;
 HANDLE g_mutexTimer;
 
 
-void  Disp(LPVOID lpParam)
+void  CusbCamConsoleDlg::Disp(LPVOID lpParam)
 {
 	int i = 0, j = 0, k = 0;
-	cq_uint8_t *pDataBuffer = (cq_uint8_t*)lpParam;
+	CImgFrame* imgframe = (CImgFrame*)lpParam;
+	cq_uint8_t* pDataBuffer = imgframe->m_imgBuf;
 	cv::Mat frame(g_iHeight, g_iWidth, (g_byteBitDepthNo==1? CV_8UC1: CV_16UC1) ,pDataBuffer);
 	
 	//WaitForSingleObject(g_mutexDisp, INFINITE); 
@@ -87,8 +88,10 @@ CusbCamConsoleDlg::CusbCamConsoleDlg(CWnd* pParent /*=NULL*/)
 	g_mutexDisp= CreateMutex(NULL, FALSE, NULL);
 	g_mutexTimer = CreateMutex(NULL, FALSE, NULL);
 
-	g_iWidth=1280;
-	g_iHeight=720*3;
+	//g_iWidth=1280;
+	//g_iHeight=1024;
+	g_iWidth = 400;
+	g_iHeight = 400;
 	g_byteBitDepthNo=1;
 	m_bIsCapturing = false;
 
@@ -355,7 +358,7 @@ void CusbCamConsoleDlg::OnBnClickedButtonVedioCap()
 	SetWindowLong(hParentWnd, GWL_STYLE, style);
 
 
-	if(m_sensorInUse->StartCap(g_iHeight, (g_byteBitDepthNo == 1 ? g_iWidth : g_iWidth * 2), Disp)<0)
+	if(m_sensorInUse->StartCap(g_iHeight, (g_byteBitDepthNo == 1 ? g_iWidth : g_iWidth * 2), CapImgEntry, this)<0)
 	{
 		SetDlgItemText(IDC_STATIC_STATUS, L"USB设备打开失败！");
 #if 0

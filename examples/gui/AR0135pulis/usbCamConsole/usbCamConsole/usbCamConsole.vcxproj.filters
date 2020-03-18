@@ -22,6 +22,7 @@
     <None Include="res\usbCamConsole.ico">
       <Filter>资源文件</Filter>
     </None>
+    <None Include="cpp.hint" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="usbCamConsole.h">

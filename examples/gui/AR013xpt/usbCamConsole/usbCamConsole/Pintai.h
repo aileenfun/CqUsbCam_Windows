@@ -1,7 +1,7 @@
 #pragma once
 #include "CqUsbCam.h"
 #include <vector>
-#define CAM_NUM 3
+
 
 struct arbFuncStruct
 {
@@ -52,6 +52,7 @@ public:
 	int height;
 	int width;
 	int mode;
+	cq_uint32_t camTotalNum;
 	void init(CCqUsbCam* u)
 	{
 		height = 960;
@@ -59,10 +60,13 @@ public:
 		mode = 1;
 		m_sensorInUse = u;
 		Reg_CAM_OFFSET = 0x10;
+		camTotalNum = 0;
+		m_sensorInUse->RdFpgaReg(0x92, camTotalNum);
 	}
 	
 	int getCamRes()
 	{
+
 		unsigned int  regvalue = 0;
 		m_sensorInUse->RdFpgaReg(0x93 + camNum * 4, regvalue);
 		height = regvalue << 8;
@@ -72,6 +76,11 @@ public:
 		width = regvalue << 8;
 		m_sensorInUse->RdFpgaReg(0x96 + camNum * 4, regvalue);
 		width += regvalue;
+	
+		if (width * height == 0)
+		{
+			mode = 0;
+		}
 		return width * height;
 	}
 	int wrThisCamCmd(cq_uint32_t func, cq_uint32_t v)
@@ -101,22 +110,33 @@ public:
 class CCameraCtrl
 {
 public:
-	CCameraCmd cam[3];
-
+	CCameraCmd* cam;
+	int CAM_NUM;
 	CCameraCtrl()
 	{
 
 	}
 	void init(CCqUsbCam* u)
 	{
-		for (int i = 0; i < CAM_NUM; i++)
+		CAM_NUM = 0;
+		CCameraCmd cam0;
+		cam0.camNum = 0;
+		cam0.init(u);
+
+		if (cam0.camTotalNum > 0)
 		{
-			cam[i].camNum = i;
-			cam[i].init(u);
+			CAM_NUM=cam0.camTotalNum;
+			cam = new CCameraCmd[CAM_NUM];
+			for (int i = 0; i < CAM_NUM; i++)
+			{
+				cam[i].camNum = i;
+				cam[i].init(u);
+			}
 		}
 	}
 	long getTotalDataLen()
 	{
+		getAllRes();
 		long datalen = 0;
 		for (int i = 0; i < CAM_NUM; i++)
 		{
@@ -129,12 +149,14 @@ public:
 	}
 	int getAllRes()
 	{
+		int validCam=0;
 		for (int i = 0; i < CAM_NUM; i++)
 		{
 
-			cam[i].getCamRes();
+			if (cam[i].getCamRes() > 0)
+				validCam++;
 		}
-		return 0;
+		return validCam;
 	}
 	int setGenFunction(int s, int value)
 	{

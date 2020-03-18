@@ -1,49 +1,103 @@
-#if 0
+
 #include "stdafx.h"
 #include "CqUsbCam_API.h"
-#include <vector>
 
-using namespace std;
-vector<CCqUsbCam*> g_vecDev;
-	
-	;
 
-CQUSBCAM_API cq_int32_t OpenUSB(HANDLE h, cq_uint32_t devNum)
+/*
+void BMPHeader(int lWidth, int lHeight, cq_byte_t* m_buf, BITMAPINFO* m_bmi)
 {
-	if (devNum > g_vecDev.size() | devNum < 0| devNum < g_vecDev.size())
-		return -1;
+	int mlBpp = 8;
+	bool lReverse = false;
+	BITMAPFILEHEADER bhh;
+	BITMAPINFOHEADER bih;
 
-	CCqUsbCam* dev = new CCqUsbCam(h);	
-	g_vecDev.push_back(dev);
+	memset(m_bmi, 0, sizeof(BITMAPINFO));
+	memset(&bhh, 0, sizeof(BITMAPFILEHEADER));
+	memset(&bih, 0, sizeof(BITMAPINFOHEADER));
 
-	if (g_vecDev[devNum]->m_bIsInterfaceClaimed == true)
-		return -2;
+	int widthStep = (((lWidth * mlBpp) + 31) & (~31)) / 8; //每行实际占用的大小（每行都被填充到一个4字节边界）
+	int QUADSize = mlBpp == 8 ? sizeof(RGBQUAD) * 256 : 0;
 
-	if(g_vecDev[devNum]->OpenUSB(devNum) != 0)// 打开USB失败
+	//构造彩色图的文件头
+	bhh.bfOffBits = (DWORD)sizeof(BITMAPFILEHEADER) + (DWORD)sizeof(BITMAPINFOHEADER) + QUADSize;
+	bhh.bfSize = sizeof(m_bmi->bmiHeader);//(DWORD)sizeof(BITMAPFILEHEADER) + (DWORD)sizeof(BITMAPINFOHEADER) + QUADSize + widthStep*lHeight;  
+	bhh.bfReserved1 = 0;
+	bhh.bfReserved2 = 0;
+	bhh.bfType = 0x4d42;
+
+	//构造彩色图的信息头
+	bih.biBitCount = mlBpp;
+	bih.biSize = sizeof(BITMAPINFOHEADER);
+	bih.biHeight = (lReverse ? -1 : 1) * lHeight;
+	bih.biWidth = lWidth;
+	bih.biPlanes = 1;
+	bih.biCompression = BI_RGB;
+	bih.biSizeImage = widthStep * lHeight;
+	bih.biXPelsPerMeter = 0;
+	bih.biYPelsPerMeter = 0;
+	bih.biClrUsed = 0;
+	bih.biClrImportant = 0;
+
+	//构造灰度图的调色版
+	RGBQUAD rgbquad[256];
+	if (mlBpp == 8)
 	{
-		g_vecDev[devNum]->CloseUSB();
-		delete dev;
-		vector<CCqUsbCam*>::iterator k = g_vecDev.begin() + devNum;
-		g_vecDev.erase(k);
-		return -3;
-	}
-	else// 打开USB成功
-	{
-		devInfo_t devInfo;
-		g_vecDev[devNum]->GetDevInfo(devInfo);
-		//cq_int8_t sensorType[DEV_INFOR_SENSOR_TYPE_LEN];
-		if(strcmp(devInfo.sensorType, "0134")||strcmp(devInfo.sensorType, "0135"))
-			g_vecDev[devNum]->SelectSensor((string*)"AR0135");
-		else if(strcmp(devInfo.sensorType, "V034"))
-			g_vecDev[devNum]->SelectSensor((string*)"MT9V034");
-		else if(strcmp(devInfo.sensorType, "M001"))
-			g_vecDev[devNum]->SelectSensor((string*)"MT9M001");
-		else if(strcmp(devInfo.sensorType, "P001"))
-			g_vecDev[devNum]->SelectSensor((string*)"MT9P001");
-		else
-			return -4;//sensor type错误
+		for (int i = 0; i < 256; i++)
+		{
+			rgbquad[i].rgbBlue = i;
+			rgbquad[i].rgbGreen = i;
+			rgbquad[i].rgbRed = i;
+			rgbquad[i].rgbReserved = 0;
+			m_bmi->bmiColors[i].rgbRed = i;
+			m_bmi->bmiColors[i].rgbGreen = i;
+			m_bmi->bmiColors[i].rgbBlue = i;
+			m_bmi->bmiColors[i].rgbReserved = 0;
+		}
 
-		return 0;
 	}
+
+	int DIBSize = widthStep * lHeight;
+
+	cq_byte_t* bmpbuffer = new cq_byte_t[sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 256 + DIBSize];
+	memcpy(bmpbuffer, (LPSTR)&bhh, sizeof(BITMAPFILEHEADER));
+	memcpy(bmpbuffer + sizeof(BITMAPFILEHEADER), (LPSTR)&bih, sizeof(BITMAPINFOHEADER));
+	memcpy(bmpbuffer + sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER), &rgbquad, sizeof(RGBQUAD) * 256);
+	//memcpy(bmpbuffer+sizeof(BITMAPFILEHEADER)+sizeof(BITMAPINFOHEADER)+sizeof(RGBQUAD)*256,m_buf,DIBSize);
+	//m_picCtrl.Load(bmpbuffer,sizeof(BITMAPFILEHEADER)+sizeof(BITMAPINFOHEADER)+sizeof(RGBQUAD)*256+DIBSize);
+
+	m_bmi->bmiHeader = bih;
+
+	delete bmpbuffer;
+	bool b_save_file = false;
+	if (snap)
+	{
+		CString strName;
+		CString camFolder;
+		camFolder.Format(L"d:\\c6UDP\\cam%d",0);
+		if(CreateDirectory(camFolder,NULL)||ERROR_ALREADY_EXISTS == GetLastError())
+		{
+			int iFileIndex=1;
+			do
+			{
+				strName.Format(L"d:\\c6UDP\\cam%d\\V_%d.jpg",0,iFileIndex);
+				++iFileIndex;
+			} while (_waccess(strName,0)==0);
+			CT2CA pszConvertedAnsiString (strName);
+			std::string cvfilename(pszConvertedAnsiString);
+
+			CFile file;
+	if(file.Open(strName,CFile::modeWrite | CFile::modeCreate))
+	{
+		file.Write((LPSTR)&bhh,sizeof(BITMAPFILEHEADER));
+		file.Write((LPSTR)&bih,sizeof(BITMAPINFOHEADER));
+		if(mlBpp==8) file.Write(&rgbquad,sizeof(RGBQUAD)*256);
+		file.Write(m_buf,DIBSize);
+		file.Close();
+		return ;
+	}
+		}
+		
+	}
+
 }
-#endif
+*/

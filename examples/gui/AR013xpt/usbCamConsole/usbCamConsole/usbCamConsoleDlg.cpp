@@ -41,7 +41,7 @@ cq_uint8_t		g_byteResolutionType;
 int savefile = 0;
 HANDLE g_mutexDisp;
 HANDLE g_mutexTimer;
-int show_channel = 1;
+int show_channel = 0;
 int g_camsize = 3;
 byte* imgBuf = NULL;
 byte* imgBuf1 = NULL;
@@ -73,7 +73,7 @@ void  CusbCamConsoleDlg::Disp(LPVOID lpParam)
 	}
 
 	offset = 0;
-	if (show_channel==1 || show_channel == 4)
+	if (show_channel==0 || show_channel == 4)
 	{
 		memcpy(imgBuf, pDataBuffer + offset, camctrl.cam[0].height * camctrl.cam[0].width);
 		offset += camctrl.cam[0].height * camctrl.cam[0].width;
@@ -85,7 +85,7 @@ void  CusbCamConsoleDlg::Disp(LPVOID lpParam)
 		}
 	}
 	
-	if (show_channel==2 || show_channel == 4)
+	if (show_channel==1 || show_channel == 4)
 	{
 		memcpy(imgBuf1, pDataBuffer + offset, camctrl.cam[1].height * camctrl.cam[1].width);
 		offset += camctrl.cam[1].height * camctrl.cam[1].width;
@@ -97,7 +97,7 @@ void  CusbCamConsoleDlg::Disp(LPVOID lpParam)
 		}
 	}
 
-	if (show_channel==3|| show_channel==4)
+	if (show_channel==2|| show_channel==4)
 	{
 		memcpy(imgBuf2, pDataBuffer + offset, camctrl.cam[2].height * camctrl.cam[2].width);
 		offset += camctrl.cam[2].height * camctrl.cam[2].width;
@@ -788,8 +788,7 @@ void CusbCamConsoleDlg::OnBnClickedButtonStopCap()
 
 void CusbCamConsoleDlg::OnBnClickedButtonVedioCap()
 {
-	// TODO: �ڴ����ӿؼ�֪ͨ�����������
-		/************************************************************/
+	/*
 	if (!m_bUsbOpen)
 	{
 		SetDlgItemText(IDC_STATIC_STATUS, L"USB start cap");
@@ -797,6 +796,7 @@ void CusbCamConsoleDlg::OnBnClickedButtonVedioCap()
 	}
 	if (true == m_bIsCapturing)
 		return;
+		*/
 #if 0
 	GetDlgItem(IDC_RADIO1)->EnableWindow(false);
 	GetDlgItem(IDC_RADIO2)->EnableWindow(false);
@@ -813,13 +813,12 @@ void CusbCamConsoleDlg::OnBnClickedButtonVedioCap()
 	cv::namedWindow("disp");
 	//cv::namedWindow("cam1");
 	//cv::namedWindow("cam2");
-	HWND hWnd = (HWND)cvGetWindowHandle("disp");//��ȡ�Ӵ��ڵ�HWND
-	HWND hParentWnd = ::GetParent(hWnd);//��ȡ������HWND��������������Ҫ�õ�
-	 //���ش��ڱ����� 
+	HWND hWnd = (HWND)cvGetWindowHandle("disp");
+	HWND hParentWnd = ::GetParent(hWnd);//
 	long style = GetWindowLong(hParentWnd, GWL_STYLE);
 	style &= ~(WS_SYSMENU);
 	SetWindowLong(hParentWnd, GWL_STYLE, style);
-	camctrl.getAllRes();
+	//camctrl.getAllRes();
 
 	if (m_sensorInUse->StartCap(camctrl.getTotalDataLen(), 1, CapImgEntry, this)<0)
 	{

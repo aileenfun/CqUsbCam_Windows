@@ -67,6 +67,7 @@ void CusbCamConsoleDlg::Disp(LPVOID lpParam)
 		int y=(mplsdisp->mplsCam[k].dispmtx.zoom-1)*sig_height/2;
 		
 		dispframelist[k]=rframelist[k](cv::Rect(x,y,sig_width,sig_height));
+		doGamma(dispframelist[k], dispframelist[k]);
 		mplsdisp->mplsCam[k].imgDrawCross.drawCross(dispframelist[k],k);
 	}
 	dispframelist[mplsdisp->mplsCam[0].dispmtx.dispslot].copyTo(mergeimg(cv::Rect(sig_width * 0, sig_height*0, sig_width, sig_height)));//1
@@ -76,7 +77,11 @@ void CusbCamConsoleDlg::Disp(LPVOID lpParam)
 	dispframelist[mplsdisp->mplsCam[4].dispmtx.dispslot].copyTo(mergeimg(cv::Rect(sig_width * 2, sig_height*2, sig_width, sig_height)));//5
 	cv::namedWindow("disp");
 	cv::imshow("disp", mergeimg);
-	
+	if (f_snap)
+	{
+		f_snap = 0;
+		cv::imwrite("snap.jpg", mergeimg);
+	}
 	cv::waitKey(1);
 	/**************
 	(0, 0)--11111111111--(w,0)--00000000000--(w*2,0)--44444444444--
@@ -156,7 +161,9 @@ CusbCamConsoleDlg::CusbCamConsoleDlg(CWnd* pParent /*=NULL*/)
 	selectCam = 0;
 	mpls = new PLSFiveCam(m_sensorInUse);
 	mplsdisp = mpls;
-
+	f_snap = 0;
+	gamma = 1;
+	
 }
 CusbCamConsoleDlg::~CusbCamConsoleDlg()
 {
@@ -228,11 +235,115 @@ BEGIN_MESSAGE_MAP(CusbCamConsoleDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON_CROSS_SET, &CusbCamConsoleDlg::OnBnClickedButtonCrossSet)
 	ON_BN_CLICKED(IDC_BUTTON_SAVE_CONFIG2, &CusbCamConsoleDlg::OnBnClickedButtonSaveConfig2)
 	ON_BN_CLICKED(IDC_BUTTON_LOAD_CONFIG, &CusbCamConsoleDlg::OnBnClickedButtonLoadConfig)
+	ON_BN_CLICKED(IDC_BTN_SNAP, &CusbCamConsoleDlg::OnBnClickedBtnSnap)
+	ON_BN_CLICKED(IDC_BUTTON_EXPO_SET3, &CusbCamConsoleDlg::OnBnClickedButtonExpoSet3)
 END_MESSAGE_MAP()
 
 
 // CusbCamConsoleDlg 消息处理程序
 
+//void CusbCamConsoleDlg::on_mouse(int event, int x, int y, int flags, void* ustc)
+void on_mouse(int event, int x, int y, int flags, void* ustc)
+{
+	CusbCamConsoleDlg* app= (CusbCamConsoleDlg*)ustc;
+	int camnum = -1;
+	int roix = 0;
+	int roiy = 0;
+	int cx = 320;
+	int cy = 180;
+	if ((flags & CV_EVENT_FLAG_LBUTTON))
+	{
+		if (x < 640 && y < 360)
+		{
+			camnum = 0;
+			roix = x;
+			roiy = y;
+		}
+		else if(y>360*2&&y<360*3&&x<640)
+		{
+			camnum = 1;
+			roix = x;
+			roiy = y - 360 * 2;
+		}
+		else if (y > 360 && y < 360 * 2 && x>640 && x < 640 * 2)
+		{
+			camnum = 3;
+			roix = x - 640;
+			roiy = y - 360;
+		}
+		else if (x > 640 * 2 && x < 640 * 3 && y < 360)
+		{
+			camnum = 4;
+			roix = x - 640 * 2;
+			roiy = y;
+		}
+		else if (x > 640 * 2 && x < 640 * 3 && y>360 * 2 && y < 360 * 3)
+		{
+			camnum = 5;
+			roix = x - 640*2;
+			roiy = y - 360 * 2;
+		}
+		//assume now center point is 0
+		
+
+		//x-,x+,y-,y+
+		//0, 1, 2, 3
+		//1, 2, 4, 8
+		CButton* m_ctlCheck = (CButton*)(app->GetDlgItem(IDC_RADIO_SKIP1));
+		m_ctlCheck->SetCheck(1);
+		m_ctlCheck = (CButton*)(app->GetDlgItem(IDC_RADIO_SKIP2));
+		m_ctlCheck->SetCheck(0);
+		m_ctlCheck = (CButton*)(app->GetDlgItem(IDC_RADIO_SKIP3));
+		m_ctlCheck->SetCheck(0);
+		app->OnBnClickedRadioSkip1();
+		int axis = 0;
+		if (roix-cx < 0)
+		{
+			axis = 1;
+		}
+		else if (roix-cx > 0)
+		{
+			axis = 2;
+		}
+		int roistep = abs(roix-cx)*4;
+		int delaytime = 200;
+		for (; roistep > 0; roistep = roistep - 255)
+		{
+			Sleep(delaytime);
+			int thisstep = roistep;
+			if (roistep >= 255)
+			{
+				thisstep = 255;
+			}
+			app->mpls->setFunction(Func_ROI_STEP, thisstep);
+			Sleep(delaytime);
+			app->mpls->setFunction(Func_ROI, axis);
+		}
+		if (roiy-cy < 0)
+		{
+			axis = 4;
+		}
+		if (roiy-cy > 0)
+		{
+			axis = 8;
+		}
+		roistep = abs(roiy-cy)*4;
+		for (; roistep > 0; roistep=roistep - 255)
+		{
+			Sleep(delaytime);
+			int thisstep = roistep;
+			if (roistep >= 255)
+			{
+				thisstep = 255;
+			}
+				app->mpls->setFunction(Func_ROI_STEP, thisstep);
+			Sleep(delaytime);
+			app->mpls->setFunction(Func_ROI, axis);
+		}
+
+	}
+
+}
 BOOL CusbCamConsoleDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
@@ -261,7 +372,8 @@ BOOL CusbCamConsoleDlg::OnInitDialog()
 	//  执行此操作
 	SetIcon(m_hIcon, TRUE);			// 设置大图标
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
-	
+	(GetDlgItem(IDC_EDIT_GAMMA)->SetWindowTextW(_T("1")));
+	OnBnClickedButtonExpoSet3();	
 	return TRUE; 
 }
 
@@ -303,15 +415,18 @@ void CusbCamConsoleDlg::OnPaint()
 	{
 		CDialogEx::OnPaint();
 	}
+	
 	CWnd:: SetWindowPos(&CWnd::wndTopMost,  0, 0, 0, 0, SWP_NOMOVE | SWP_NOREPOSITION | SWP_NOSIZE);
-	cv::namedWindow("disp");
-	cv::moveWindow("disp", 0, 0);
+	//cv::Mat temp=cv::imread("snap.jpg");
+	//cv::imshow("disp",temp);
 	HWND hWnd = (HWND)cvGetWindowHandle("disp");//获取子窗口的HWND
 	HWND hParentWnd = ::GetParent(hWnd);//获取父窗口HWND。父窗口是我们要用的
+	
+
 	 //隐藏窗口标题栏 
-	long style = GetWindowLong(hParentWnd, GWL_STYLE);
-	style &= ~(WS_SYSMENU);
-	SetWindowLong(hParentWnd, GWL_STYLE, style);
+	//long style = GetWindowLong(hParentWnd, GWL_STYLE);
+	//style &= ~(WS_SYSMENU);
+	//SetWindowLong(hParentWnd, GWL_STYLE, style);
 }
 
 //当用户拖动最小化窗口时系统调用此函数取得光标
@@ -326,7 +441,7 @@ HCURSOR CusbCamConsoleDlg::OnQueryDragIcon()
 
 void CusbCamConsoleDlg::OnBnClickedButtonOpenUsb()
 {
-	// TODO: 在此添加控件通知处理程序代码
+	
 	if (m_sensorInUse->OpenUSB(0)<0)
 	{
 		SetDlgItemText(IDC_STATIC_STATUS, L"打开USB失败。");
@@ -336,6 +451,7 @@ void CusbCamConsoleDlg::OnBnClickedButtonOpenUsb()
 
 	SetDlgItemText(IDC_STATIC_STATUS, L"打开USB成功。");
 	m_bUsbOpen = true;
+	OnBnClickedButtonCheckSpeed();
 }
 
 
@@ -431,12 +547,13 @@ void CusbCamConsoleDlg::OnBnClickedButtonVedioCap()
 
 	cv::namedWindow("disp");
 	cv::moveWindow("disp", 0, 0);
+	cv::setMouseCallback("disp", on_mouse, this);
 	HWND hWnd = (HWND)cvGetWindowHandle("disp");//获取子窗口的HWND
 	HWND hParentWnd = ::GetParent(hWnd);//获取父窗口HWND。父窗口是我们要用的
 	 //隐藏窗口标题栏 
 	long style = GetWindowLong(hParentWnd, GWL_STYLE);
-	style &= ~(WS_SYSMENU);
-	SetWindowLong(hParentWnd, GWL_STYLE, style);
+	// &= ~(WS_SYSMENU);
+	//SetWindowLong(hParentWnd, GWL_STYLE, style);
 
 	g_byteBitDepthNo = 1;
 	g_iHeight = 360*5;
@@ -1280,4 +1397,34 @@ void CusbCamConsoleDlg::OnBnClickedButtonLoadConfig()
 	mpls->readParams(readconfig);
 	SetDlgItemText(IDC_STATIC_STATUS, L"读取成功");
 	//delete readconfig;
+}
+
+
+
+void CusbCamConsoleDlg::OnBnClickedBtnSnap()
+{
+	f_snap = 1;
+}
+
+void CusbCamConsoleDlg::OnBnClickedButtonExpoSet3()
+{
+	CString str;
+	GetDlgItemText(IDC_EDIT_GAMMA, str);
+	gamma = _tstof(str);
+	for (int i = 0; i < 256; i++)
+	{
+		lut[i] = cv::saturate_cast<uchar>(pow((float)(i / 255.0), gamma) * 255.0f);
+	}
+}
+void CusbCamConsoleDlg::doGamma(cv::Mat& src, cv::Mat& dst)
+{
+	dst = src.clone();
+	const int channels = dst.channels();
+
+
+	cv::MatIterator_<uchar> it, end;
+	for (it = dst.begin<uchar>(), end = dst.end<uchar>(); it != end; it++)
+		//*it = pow((float)(((*it))/255.0), fGamma) * 255.0;
+		*it = lut[(*it)];
+
 }

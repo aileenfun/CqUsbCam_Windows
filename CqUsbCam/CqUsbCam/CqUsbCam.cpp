@@ -97,6 +97,7 @@ cq_int32_t  CCqUsbCam::SelectSensor(string* pStrSensorName)
 
 cq_int32_t CCqUsbCam::OpenUSB(cq_uint32_t usbNum)
 {
+
 	if (m_pUsbHandle->Open(usbNum) == 0)
 		return -1;
 	if(m_pUsbHandle->IsOpen())
@@ -121,9 +122,6 @@ cq_int32_t CCqUsbCam::OpenUSB(cq_uint32_t usbNum)
 
 		memcpy(chSensorType, devInfo.sensorType, DEV_INFOR_SENSOR_TYPE_LEN);
 		memcpy(chManufactureName, devInfo.manufactureName, DEV_INFOR_MANUFACTURE_NAME_LEN);
-
-		//if(strcmp(chManufactureName, "CCHV"))
-		//	return -1;//�ǡ����𡱲�Ʒ
 				
 		if((!strcmp(chSensorType, "0134"))||(!strcmp(devInfo.sensorType, "0135")))
 			strSensorType = "AR0135";
@@ -533,5 +531,246 @@ void CCqUsbCam::ClearRecvFrameCnt()
 }
 
 
+vector<CCqUsbCam*> g_vecDev;
 
 
+cq_int32_t CQUSBOpenUSB(cq_uint32_t devNum)
+{
+	if (devNum < 1)return devNum;
+	if (devNum > g_vecDev.size())return -2;
+	devNum = devNum - 1;
+
+	if (g_vecDev[devNum]->m_bIsInterfaceClaimed == true)
+		return -2;
+
+	if (g_vecDev[devNum]->OpenUSB(devNum) < 0)// 打开USB失败
+	{
+		return -3;
+	}
+	else// 打开USB成功
+	{
+		return CQUSBGetUsbSpeed(devNum+1);
+	}
+}
+ cq_int32_t CQUSBCloseUsb(cq_uint32_t devNum)
+{
+	if (devNum < 1)return devNum;
+	if (devNum > g_vecDev.size())return -2;
+	devNum = devNum - 1;
+
+	g_vecDev[devNum]->CloseUSB();
+	delete g_vecDev[devNum];
+	vector<CCqUsbCam*>::iterator k = g_vecDev.begin() + devNum;
+	g_vecDev.erase(k);
+	return 0;
+}
+
+ cq_int32_t CQUSBGetUsbSpeed(cq_uint32_t devNum)
+{
+	if (devNum < 1)return devNum;
+	if (devNum > g_vecDev.size())return -2;
+	devNum = devNum - 1;
+
+	unsigned int speed = 0;
+	g_vecDev[devNum]->GetUsbSpeed(speed);
+	if (speed == USB_SPEED_SUPER)
+	{
+		g_vecDev[devNum]->SendUsbSpeed2Fpga(USB_SPEED_SUPER);
+		return 3;
+	}
+	else if (speed == USB_SPEED_HIGH)
+	{
+		g_vecDev[devNum]->SendUsbSpeed2Fpga(USB_SPEED_HIGH);
+		return 2;
+	}
+	else
+	{
+		return 0;
+	}
+}
+#ifdef CS_API
+int cs_height;
+int cs_width;
+unsigned char* csImgBuff;
+
+int imgready = 0;
+void  CQUSBGetImgCallBack(LPVOID lpParam, LPVOID lpUser)
+{
+	const int camcnt = 1;
+	CImgFrame* imgframe = (CImgFrame*)lpParam;
+	CCqUsbCam* host = (CCqUsbCam*)lpUser;
+	//cq_uint8_t* pDataBuffer = imgframe->m_imgBuf;
+	//memcpy(csImgBuff, imgframe->m_imgBuf, cs_height*cs_width);
+	host->csCBHandler(imgframe->m_imgBuf);
+	//imgready = 1;
+}
+
+cq_int32_t CQUSBcsGetFrame(unsigned char* buff)
+{
+	while (!imgready)
+	{
+		Sleep(1);
+	}
+	memcpy(buff, csImgBuff, cs_height * cs_width);
+	//cv::Mat frameGray(cv_height,cv_width,CV_8UC1,pimagebuf);
+	//cv::Mat frameRGB;
+	//cv::cvtColor(frameGray,frameRGB,CV_BayerBG2BGR);
+	imgready = 0;
+	return cs_height * cs_width;
+}
+cq_int32_t CQUSBAddInstance(csCallBackFuncDel cb,int w, int h)
+{
+	CCqUsbCam* dev = new CCqUsbCam(NULL);
+	g_vecDev.push_back(dev);
+	dev->csCBHandler = cb;
+	cs_width = w;
+	cs_height = h;
+	return g_vecDev.size();
+}
+//cq_int32_t CQUSBcsInit( int w = 640, int h = 360)
+//{
+
+//	csImgBuff = new unsigned char[cs_width * cs_height];
+//	memset(csImgBuff, 0, cs_width * cs_height);
+//	return 1;
+//}
+#endif
+
+ cq_int32_t CQUSBStartCap(cq_uint32_t devNum)
+{
+	if (devNum < 1)return devNum;
+	if (devNum > g_vecDev.size())return -2;
+	devNum = devNum - 1;
+
+	if (g_vecDev[devNum]->StartCap(cs_height, cs_width, CQUSBGetImgCallBack, g_vecDev[devNum]) < 0)
+	{
+		return -1;
+	}
+	return 1;
+}
+ cq_int32_t CQUSBStopCap(cq_uint32_t devNum)
+{
+	if (devNum < 1)return devNum;
+	if (devNum > g_vecDev.size())return -2;
+	devNum = devNum - 1;
+
+	g_vecDev[devNum]->StopCap();
+}
+class RegSettingsStruct2
+{
+public:
+	int s;
+	int funcNum;
+	int value;
+	int sendAddr;
+public:
+	vector<int> addrlist;
+public:
+	RegSettingsStruct2()
+	{
+		addrlist.push_back(0x0b);
+		addrlist.push_back(0x10);
+		addrlist.push_back(0x15);
+		addrlist.push_back(0x1A);
+		addrlist.push_back(0x20);
+		addrlist.push_back(0x21);
+		addrlist.push_back(0x22);
+		addrlist.push_back(0x23);
+		addrlist.push_back(0x24);
+	}
+};
+ RegSettingsStruct2 regSettings;
+ enum PLSRegFunc
+ {
+	 Reg_SKIP,
+	 Reg_Gain,
+	 Reg_ROI,
+	 Reg_ROI_STEP,
+	 Reg_SENSOR_SELECT,
+	 Reg_SENSOR_REG1,
+	 Reg_SENSOR_REG2,
+	 Reg_SENSOR_REG3,
+	 Reg_SENSOR_REG4
+ };
+ void actCmd(int devnum)
+ {
+	 int SensorNum = 0;
+	 //WrFpgaReg_t();
+	 if (regSettings.funcNum < 4)
+	 {
+		 regSettings.sendAddr = regSettings.addrlist[regSettings.funcNum] + SensorNum;
+	 }
+	 else
+	 {
+		 regSettings.sendAddr = regSettings.addrlist[regSettings.funcNum];
+	 }
+	 g_vecDev[devnum]->WrFpgaReg(regSettings.sendAddr, regSettings.value);
+	 //m_sensorInUse->ArbitrFunc(&regSettings);
+ }
+
+ cq_int32_t wrSensorCmd(int sensor, int sensorReg, int value,int devnum)
+ {
+
+	 regSettings.funcNum = Reg_SENSOR_REG1;
+	 regSettings.value = sensorReg >> 8;
+	 actCmd(devnum);
+
+
+	 regSettings.funcNum = Reg_SENSOR_REG2;
+	 regSettings.value = sensorReg & 0xff;
+	 actCmd(devnum);
+
+	 regSettings.funcNum = Reg_SENSOR_REG3;
+	 regSettings.value = value >> 8;
+	 actCmd(devnum);
+
+	 regSettings.funcNum = Reg_SENSOR_REG4;
+	 regSettings.value = value & 0xff;
+	 actCmd(devnum);
+
+	 regSettings.funcNum = Reg_SENSOR_SELECT;
+	 regSettings.value = sensor;
+	 actCmd(devnum);
+	 return 0;
+ }
+ cq_int32_t CQUSBSetExpo_PLS1Cam(int expo, int devNum)
+ {
+	 if (devNum < 1)return devNum;
+	 if (devNum > g_vecDev.size())return -2;
+	 devNum = devNum - 1;
+
+	 wrSensorCmd(0, 0x0202, expo, devNum);
+ }
+ cq_int32_t CQUSBSetResolution(int res, int devNum)
+ {
+	 if (devNum < 1)return devNum;
+	 if (devNum > g_vecDev.size())return -2;
+	 devNum = devNum - 1;
+
+	 if (res == 4208)
+	 {
+		 res = 0;
+	 }
+	 else if(res==2104)
+	 {
+		 res = 1;
+	 }
+	 else
+	 {
+		 return -1;
+	 }
+	 g_vecDev[devNum]->WrFpgaReg(0x25, res);
+	 if (res == 0)
+	 {
+		 wrSensorCmd(3, 0x0346, 0, devNum);
+		 wrSensorCmd(3,0x34A, 3127, devNum);
+		 wrSensorCmd(3,0x34E, 3120, devNum);
+	 }
+	 else
+	 {
+		 wrSensorCmd(3,0x346, 780,devNum);
+		 wrSensorCmd(3,0x34A, 2339, devNum);
+		 wrSensorCmd(3,0x34E,1560, devNum);
+	 }
+	 return 1;
+ }

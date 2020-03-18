@@ -24,13 +24,21 @@
 // 任何其他项目上不应定义此符号。这样，源文件中包含此文件的任何其他项目都会将
 // CQUSBCAM_API 函数视为是从 DLL 导入的，而此 DLL 则将用此宏定义的
 // 符号视为是被导出的。
+#define CS_API
+#ifdef CS_API
+typedef int(__stdcall* csCallBackFuncDel)(unsigned char* buff);
+#ifdef CQUSBCAM_EXPORTS
+#define CQUSBCAM_CSAPI extern "C" __declspec(dllexport) 
+#else
+#define CQUSBCAM_CSAPI extern "C" __declspec(dllimport)
+#endif
+#endif
 
 #ifdef CQUSBCAM_EXPORTS
-#define CQUSBCAM_API __declspec(dllexport)
+#define CQUSBCAM_API __declspec(dllexport) 
 #else
 #define CQUSBCAM_API __declspec(dllimport)
 #endif
-
 
 #include <stdio.h>
 #include <string>
@@ -46,13 +54,21 @@
 #include "DataProcess.h"
 #include "tagSensor.h"
 #include "devInfo.h"
+#include <vector>
 
 
 #define USB_SPEED_SUPER		0x00
 #define USB_SPEED_HIGH		0x01
 
+using namespace std;
+
 // 此类是从 CqUsbCam.dll 导出的
 class CQUSBCAM_API CCqUsbCam {
+public:
+    cq_bool_t m_bIsInterfaceClaimed;
+#ifdef CS_API
+    csCallBackFuncDel csCBHandler;
+#endif
 private:
  	//CCyUSBDevice *m_pUsbHandle;
 
@@ -64,7 +80,7 @@ private:
 	list<tagSensor> m_sensorList;
  	tagSensor m_sensorInUse;		
 	
-	cq_bool_t m_bIsInterfaceClaimed; 		
+			
 	cq_bool_t m_bIsCapturing;
 	
 	/************************************************************************************************\
@@ -414,5 +430,16 @@ private:
  	\************************************************************************************************/
 	void ClearRecvFrameCnt();
 };
+CQUSBCAM_CSAPI cq_int32_t CQUSBAddInstance(csCallBackFuncDel cb,int w, int h);
+CQUSBCAM_CSAPI cq_int32_t CQUSBOpenUSB(cq_uint32_t devNum);
+CQUSBCAM_CSAPI cq_int32_t CQUSBStartCap(cq_uint32_t devNum);
+CQUSBCAM_CSAPI cq_int32_t CQUSBStopCap(cq_uint32_t devNum);
+CQUSBCAM_CSAPI cq_int32_t CQUSBGetUsbSpeed(cq_uint32_t devNum);
+
+
+CQUSBCAM_CSAPI cq_int32_t CQUSBcsGetFrame(unsigned char* buff);
+//CQUSBCAM_CSAPI cq_int32_t CQUSBcsInit(csCallBackFuncDel cb, int w, int h);
+CQUSBCAM_CSAPI cq_int32_t CQUSBSetExpo_PLS1Cam(int expo, int devNum);
+CQUSBCAM_CSAPI cq_int32_t CQUSBSetResolution(int res, int devNum);
 
 #endif //  _CQUSBCAM_H_

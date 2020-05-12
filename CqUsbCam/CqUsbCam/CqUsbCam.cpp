@@ -774,3 +774,21 @@ public:
 	 }
 	 return 1;
  }
+ cq_int32_t CQUSBWrEeprom(int addr, int value, int devNum)
+ {
+	 if (devNum < 1)return devNum;
+	 if (devNum > g_vecDev.size())return -2;
+	 devNum = devNum - 1;
+	 return g_vecDev[devNum]->WrEeprom(addr, value);
+	 
+ }
+ cq_int32_t CQUSBRrEeprom(int addr, int devNum)
+ {
+	 if (devNum < 1)return devNum;
+	 if (devNum > g_vecDev.size())return -2;
+	 devNum = devNum - 1;
+	 unsigned char tempbuf = 0;
+	 unsigned int len = 1;
+	 g_vecDev[devNum]->RrEeprom(addr, &tempbuf, len);
+	 return tempbuf;
+ }

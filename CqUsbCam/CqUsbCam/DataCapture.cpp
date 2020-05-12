@@ -50,16 +50,16 @@ cq_int32_t CDataCapture::Open()
 {
 	m_iCount=0;		//数据计数器
 
-	m_pOutData=NULL;
+	/*m_pOutData=NULL;
 	try
 	{
 		m_pOutData=new cq_uint8_t[m_iWidth*m_iHeight+512];
-	}
-	catch(const bad_alloc& e)
-	{
-		printf("Alloc mem exception, try agian\n");
-		return -1;
-	}
+	}*/
+	//catch(const bad_alloc& e)
+	//{
+	//	printf("Alloc mem exception, try agian\n");
+	//	return -1;
+	//}
 
 	m_pInData=NULL;
 	try
@@ -75,7 +75,8 @@ cq_int32_t CDataCapture::Open()
 	m_pReadBuff=NULL;
 	try
 	{
-		m_pReadBuff=new cq_uint8_t[m_iWidth*m_iHeight+512];
+		m_pReadBuff=new cq_uint8_t[361472];
+		//m_pReadBuff = new cq_uint8_t[(m_iWidth * m_iHeight) * 2];
 	}
 	catch(const bad_alloc& e)
 	{
@@ -95,13 +96,13 @@ cq_int32_t CDataCapture::Open()
 	}
 	
 	assert(NULL!=m_pInData);
-	assert(NULL!=m_pOutData);
+	//assert(NULL!=m_pOutData);
 	assert(NULL!=m_pReadBuff);
 	assert(NULL!=m_pInputframe);
 
-	memset(m_pInData,0,(m_iWidth*m_iHeight+512)*4*sizeof(cq_byte_t));
-	memset(m_pOutData,0,(m_iWidth*m_iHeight+512)*sizeof(cq_byte_t));
-	memset(m_pReadBuff,0,(m_iWidth*m_iHeight+512)*sizeof(cq_byte_t));
+	//memset(m_pInData,0,(m_iWidth*m_iHeight+512)*4*sizeof(cq_byte_t));
+	//memset(m_pOutData,0,(m_iWidth*m_iHeight+512)*sizeof(cq_byte_t));
+	//memset(m_pReadBuff,0,(m_iWidth*m_iHeight+512)*sizeof(cq_byte_t));
 	
 	//memset(m_pInputframe,0,sizeof(CImgFrame));
 
@@ -168,12 +169,13 @@ int CDataCapture::ThreadFunc()
 	while (true==m_bCapture)
 	{
 		transferred=m_iWidth*m_iHeight+512;
-		if (transferred > 1048576)
-			transferred = 1048576;
-		/*if (transferred > 2097152)
-			transferred = 2097152;*/
-		//if (transferred > 3145728)
-		//	transferred = 3145728;
+		//if (transferred > 1048576)
+		//	transferred = 1048576;
+		//if (transferred > 2097152)
+		//	transferred = 2097152;
+		if (transferred > 3145728)
+			transferred = 3145728;
+		transferred = 361472;
 		ReadData(m_pReadBuff,transferred);
 
         if(transferred>0)

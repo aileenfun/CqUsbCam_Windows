@@ -51,6 +51,10 @@
             this.TestButton = new System.Windows.Forms.Button();
             this.FrameRateLabel = new System.Windows.Forms.Label();
             this.pictureBox2 = new System.Windows.Forms.PictureBox();
+            this.textBox1 = new System.Windows.Forms.TextBox();
+            this.btnWrEE = new System.Windows.Forms.Button();
+            this.textBox2 = new System.Windows.Forms.TextBox();
+            this.btnRdEE = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
             this.SuspendLayout();
@@ -290,11 +294,55 @@
             this.pictureBox2.TabIndex = 23;
             this.pictureBox2.TabStop = false;
             // 
+            // textBox1
+            // 
+            this.textBox1.Location = new System.Drawing.Point(1454, 551);
+            this.textBox1.Margin = new System.Windows.Forms.Padding(4);
+            this.textBox1.Name = "textBox1";
+            this.textBox1.Size = new System.Drawing.Size(132, 25);
+            this.textBox1.TabIndex = 24;
+            this.textBox1.Text = "1";
+            // 
+            // btnWrEE
+            // 
+            this.btnWrEE.Location = new System.Drawing.Point(1454, 595);
+            this.btnWrEE.Margin = new System.Windows.Forms.Padding(4);
+            this.btnWrEE.Name = "btnWrEE";
+            this.btnWrEE.Size = new System.Drawing.Size(100, 29);
+            this.btnWrEE.TabIndex = 25;
+            this.btnWrEE.Text = "write ee";
+            this.btnWrEE.UseVisualStyleBackColor = true;
+            this.btnWrEE.Click += new System.EventHandler(this.btnWrEE_Click);
+            // 
+            // textBox2
+            // 
+            this.textBox2.Location = new System.Drawing.Point(1606, 551);
+            this.textBox2.Margin = new System.Windows.Forms.Padding(4);
+            this.textBox2.Name = "textBox2";
+            this.textBox2.Size = new System.Drawing.Size(132, 25);
+            this.textBox2.TabIndex = 26;
+            this.textBox2.Text = "12345";
+            // 
+            // btnRdEE
+            // 
+            this.btnRdEE.Location = new System.Drawing.Point(1606, 595);
+            this.btnRdEE.Margin = new System.Windows.Forms.Padding(4);
+            this.btnRdEE.Name = "btnRdEE";
+            this.btnRdEE.Size = new System.Drawing.Size(100, 29);
+            this.btnRdEE.TabIndex = 27;
+            this.btnRdEE.Text = "read ee";
+            this.btnRdEE.UseVisualStyleBackColor = true;
+            this.btnRdEE.Click += new System.EventHandler(this.btnRdEE_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1774, 655);
+            this.Controls.Add(this.btnRdEE);
+            this.Controls.Add(this.textBox2);
+            this.Controls.Add(this.btnWrEE);
+            this.Controls.Add(this.textBox1);
             this.Controls.Add(this.pictureBox2);
             this.Controls.Add(this.FrameRateLabel);
             this.Controls.Add(this.TestButton);
@@ -352,6 +400,10 @@
         private System.Windows.Forms.Button TestButton;
         private System.Windows.Forms.Label FrameRateLabel;
         private System.Windows.Forms.PictureBox pictureBox2;
+        private System.Windows.Forms.TextBox textBox1;
+        private System.Windows.Forms.Button btnWrEE;
+        private System.Windows.Forms.TextBox textBox2;
+        private System.Windows.Forms.Button btnRdEE;
     }
 }
 

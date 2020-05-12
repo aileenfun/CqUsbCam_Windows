@@ -50,6 +50,12 @@ namespace GvCaller
         [DllImport(@"CqUsbCam.dll", EntryPoint = "CQUSBSetResolution", CallingConvention = CallingConvention.Cdecl)]
         public static extern int CQUSBSetResolution(int res, int devNum);
 
+        [DllImport(@"CqUsbCam.dll", EntryPoint = "CQUSBWrEeprom", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int CQUSBWrEE(int addr,int value, int devNum);
+
+        [DllImport(@"CqUsbCam.dll", EntryPoint = "CQUSBRrEeprom", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int CQUSBRdEE(int addr,int devNum);
+
         public delegate int CallBack(IntPtr buff);
         public CallBack mInstance;
         public CallBack mInstance2;
@@ -239,6 +245,21 @@ namespace GvCaller
             CQUSBSetResolution(imgwidth, devNum);
 
             CQUSBSetResolution(imgwidth, devNum2);
+        }
+
+        private void btnWrEE_Click(object sender, EventArgs e)
+        {
+            int addr = int.Parse(textBox1.Text);
+            int value = int.Parse(textBox2.Text);
+            CQUSBWrEE(addr, value, devNum);
+        }
+
+        private void btnRdEE_Click(object sender, EventArgs e)
+        {
+            int addr = int.Parse(textBox1.Text);
+            int value=CQUSBRdEE(addr,  devNum);
+            textBox2.Text = value.ToString();
+
         }
     }
 }

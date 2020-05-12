@@ -435,7 +435,8 @@ CQUSBCAM_CSAPI cq_int32_t CQUSBOpenUSB(cq_uint32_t devNum);
 CQUSBCAM_CSAPI cq_int32_t CQUSBStartCap(cq_uint32_t devNum);
 CQUSBCAM_CSAPI cq_int32_t CQUSBStopCap(cq_uint32_t devNum);
 CQUSBCAM_CSAPI cq_int32_t CQUSBGetUsbSpeed(cq_uint32_t devNum);
-
+CQUSBCAM_CSAPI cq_int32_t CQUSBWrEeprom(int addr, int value, int devNum);
+CQUSBCAM_CSAPI cq_int32_t CQUSBRrEeprom(int addr, int devNum);
 
 CQUSBCAM_CSAPI cq_int32_t CQUSBcsGetFrame(unsigned char* buff);
 //CQUSBCAM_CSAPI cq_int32_t CQUSBcsInit(csCallBackFuncDel cb, int w, int h);

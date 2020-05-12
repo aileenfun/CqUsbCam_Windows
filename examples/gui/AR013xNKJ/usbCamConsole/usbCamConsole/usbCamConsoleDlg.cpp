@@ -72,10 +72,12 @@ void  CusbCamConsoleDlg::Disp(LPVOID lpParam)
 	}
 		memcpy(imgBuf, pDataBuffer + imglen * show_channel, imglen);
 		cv::Mat frame(camctrl.cam[0].height, camctrl.cam[0].width, CV_8UC1, imgBuf);
-		cv::imshow("disp", frame);
+		cv::Mat rgbframe(frame);
+		cvtColor(frame, rgbframe, cv::COLOR_BayerRG2BGR);
+		cv::imshow("disp", rgbframe);
 		if (savefile)
 		{
-			cv::imwrite("snap1.jpg", frame);
+			cv::imwrite("snap1.jpg", rgbframe);
 		}
 	
 	savefile = 0;
@@ -114,15 +116,7 @@ BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
 END_MESSAGE_MAP()
 void CusbCamConsoleDlg::cmdTest()
 {
-	//cq_uint8_t usbids[8];
-	//USB_ORDER sUsbOrder;
-	//sUsbOrder.ReqCode = 0xB0;
-	//sUsbOrder.DataBytes = 8;
-	//sUsbOrder.pData = usbids;
-	//sUsbOrder.Direction = 1;
-	//sUsbOrder.Index = 0;
-	//sUsbOrder.Value = 0;
-	//int rst = SendOrder(m_pUsbHandle, &sUsbOrder);
+
 
 	arbFuncStruct arbFunc;
 	cq_uint8_t		chData[8];//usb3.0, 64 for usb2.0b
@@ -484,10 +478,10 @@ void CusbCamConsoleDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
 
-	DDX_Control(pDX, IDC_CHECK_AUTOGAIN, cbAutoGain);
-	DDX_Control(pDX, IDC_COMBO1, selectChannel);
-	DDX_Control(pDX, IDC_FUNC_GENERAL, selectGenFunc);
-	DDX_Control(pDX, IDC_FUNC_CAM, selectCamFunc);
+	//DDX_Control(pDX, IDC_CHECK_AUTOGAIN, cbAutoGain);
+	//DDX_Control(pDX, IDC_COMBO1, selectChannel);
+	//DDX_Control(pDX, IDC_FUNC_GENERAL, selectGenFunc);
+	//DDX_Control(pDX, IDC_FUNC_CAM, selectCamFunc);
 }
 
 BEGIN_MESSAGE_MAP(CusbCamConsoleDlg, CDialogEx)
@@ -499,31 +493,24 @@ BEGIN_MESSAGE_MAP(CusbCamConsoleDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON_STOP_CAP, &CusbCamConsoleDlg::OnBnClickedButtonStopCap)
 	ON_BN_CLICKED(IDC_BUTTON_VEDIO_CAP, &CusbCamConsoleDlg::OnBnClickedButtonVedioCap)
 	ON_WM_TIMER()
-	ON_BN_CLICKED(IDC_RADIO_RESOLU_1280_1024, &CusbCamConsoleDlg::OnBnClickedRadioResolu12801024)
-	ON_BN_CLICKED(IDC_RADIO_TRIGMODE_AUTO, &CusbCamConsoleDlg::OnBnClickedRadioTrigmodeAuto)
-	ON_BN_CLICKED(IDC_RADIO_TRIGMODE_FPGA, &CusbCamConsoleDlg::OnBnClickedRadioTrigmodeFpga)
-	ON_BN_CLICKED(IDC_RADIO_TRIGMODE_SOFT, &CusbCamConsoleDlg::OnBnClickedRadioTrigmodeSoft)
-	ON_BN_CLICKED(IDC_RADIO_TRIGMODE_EXT, &CusbCamConsoleDlg::OnBnClickedRadioTrigmodeExt)
-	ON_EN_CHANGE(IDC_EDIT_FPGATRIG_FREQ, &CusbCamConsoleDlg::OnEnChangeEditFpgatrigFreq)
-	ON_BN_CLICKED(IDC_RADIO_MIRROR_NORMAL, &CusbCamConsoleDlg::OnBnClickedRadioMirrorNormal)
-	ON_BN_CLICKED(IDC_RADIO_MIRROR_X, &CusbCamConsoleDlg::OnBnClickedRadioMirrorX)
-	ON_BN_CLICKED(IDC_RADIO_MIRROR_Y, &CusbCamConsoleDlg::OnBnClickedRadioMirrorY)
-	ON_BN_CLICKED(IDC_RADIO_MIRROR_XY, &CusbCamConsoleDlg::OnBnClickedRadioMirrorXy)
-	ON_BN_CLICKED(IDC_CHECK_AUTOGAIN, &CusbCamConsoleDlg::setAutoGainExpo)
-	ON_BN_CLICKED(IDC_BUTTON_WR_DEV_SN, &CusbCamConsoleDlg::OnBnClickedButtonWrDevSn)
-	ON_CBN_SELCHANGE(IDC_COMBO1, &CusbCamConsoleDlg::OnCbnSelchangeCombo1)
-	ON_BN_CLICKED(IDC_BUTTON_CAM_FUNC, &CusbCamConsoleDlg::OnBnClickedButtonCamFunc)
-	ON_BN_CLICKED(IDC_BUTTON_GEN_FUNC, &CusbCamConsoleDlg::OnBnClickedButtonGenFunc)
-	ON_BN_CLICKED(IDC_BUTTON_TEST, &CusbCamConsoleDlg::OnBnClickedButtonTest)
-	ON_BN_CLICKED(IDC_BUTTON_EE, &CusbCamConsoleDlg::OnBnClickedButtonTest2)
+	//ON_BN_CLICKED(IDC_RADIO_RESOLU_1280_1024, &CusbCamConsoleDlg::OnBnClickedRadioResolu12801024)
+	//ON_BN_CLICKED(IDC_RADIO_TRIGMODE_AUTO, &CusbCamConsoleDlg::OnBnClickedRadioTrigmodeAuto)
+	//ON_BN_CLICKED(IDC_RADIO_TRIGMODE_FPGA, &CusbCamConsoleDlg::OnBnClickedRadioTrigmodeFpga)
+	//ON_BN_CLICKED(IDC_RADIO_TRIGMODE_SOFT, &CusbCamConsoleDlg::OnBnClickedRadioTrigmodeSoft)
+	//ON_BN_CLICKED(IDC_RADIO_TRIGMODE_EXT, &CusbCamConsoleDlg::OnBnClickedRadioTrigmodeExt)
+	//ON_EN_CHANGE(IDC_EDIT_FPGATRIG_FREQ, &CusbCamConsoleDlg::OnEnChangeEditFpgatrigFreq)
+	//ON_BN_CLICKED(IDC_RADIO_MIRROR_NORMAL, &CusbCamConsoleDlg::OnBnClickedRadioMirrorNormal)
+	//ON_BN_CLICKED(IDC_RADIO_MIRROR_X, &CusbCamConsoleDlg::OnBnClickedRadioMirrorX)
+	//ON_BN_CLICKED(IDC_RADIO_MIRROR_Y, &CusbCamConsoleDlg::OnBnClickedRadioMirrorY)
+	//ON_BN_CLICKED(IDC_RADIO_MIRROR_XY, &CusbCamConsoleDlg::OnBnClickedRadioMirrorXy)
+	//ON_BN_CLICKED(IDC_CHECK_AUTOGAIN, &CusbCamConsoleDlg::setAutoGainExpo)
+	//ON_BN_CLICKED(IDC_BUTTON_WR_DEV_SN, &CusbCamConsoleDlg::OnBnClickedButtonWrDevSn)
+	//ON_CBN_SELCHANGE(IDC_COMBO1, &CusbCamConsoleDlg::OnCbnSelchangeCombo1)
+	//ON_BN_CLICKED(IDC_BUTTON_CAM_FUNC, &CusbCamConsoleDlg::OnBnClickedButtonCamFunc)
+	//ON_BN_CLICKED(IDC_BUTTON_GEN_FUNC, &CusbCamConsoleDlg::OnBnClickedButtonGenFunc)
+	//ON_BN_CLICKED(IDC_BUTTON_TEST, &CusbCamConsoleDlg::OnBnClickedButtonTest)
+	//ON_BN_CLICKED(IDC_BUTTON_EE, &CusbCamConsoleDlg::OnBnClickedButtonTest2)
 
-	ON_BN_CLICKED(IDC_BUTTON_RDTEMP, &CusbCamConsoleDlg::OnBnClickedButtonRdtemp)
-	ON_BN_CLICKED(IDC_RADIO_MOTOR, &CusbCamConsoleDlg::OnBnClickedRadioIo1)
-	ON_BN_CLICKED(IDC_RADIO_FAN, &CusbCamConsoleDlg::OnBnClickedRadioIo1)
-	ON_BN_CLICKED(IDC_RADIO_IO0, &CusbCamConsoleDlg::OnBnClickedRadioIo1)
-	ON_BN_CLICKED(IDC_RADIO_IO1, &CusbCamConsoleDlg::OnBnClickedRadioIo1)
-	ON_BN_CLICKED(IDC_BUTTON_SET640, &CusbCamConsoleDlg::OnBnClickedButtonSet640)
-	ON_BN_CLICKED(IDC_BUTTON_RDEE, &CusbCamConsoleDlg::OnBnClickedButtonRdee)
 	ON_WM_DEVICECHANGE()
 	ON_WM_CLOSE()
 	
@@ -551,46 +538,7 @@ BOOL CusbCamConsoleDlg::OnInitDialog()
 			pSysMenu->AppendMenu(MF_STRING, IDM_ABOUTBOX, strAboutMenu);
 		}
 	}
-
-
-	SetIcon(m_hIcon, TRUE);			
-	SetIcon(m_hIcon, FALSE);		
-
-	selectChannel.InsertString(0, _T("0"));
-	selectChannel.InsertString(1, _T("1"));
-	selectChannel.InsertString(2, _T("2"));
-	int j = 0;
-	selectGenFunc.InsertString(j++, _T("IO_1(0,1)"));
-	selectGenFunc.InsertString(j++, _T("Motor(0,1)"));
-	selectGenFunc.InsertString(j++, _T("Fan(0,1)"));
-	selectGenFunc.InsertString(j++, _T("IO_0(0,1)"));
-	selectGenFunc.InsertString(j++, _T("CamMode(0~3)"));
-	selectGenFunc.InsertString(j++, _T("CamCnt(0~6)"));
-	selectGenFunc.InsertString(j++, _T("T1(0~1000)"));
-	selectGenFunc.InsertString(j++, _T("T2(0~1000)"));
-	selectGenFunc.InsertString(j++, _T("T3(0~1000)"));
-	selectGenFunc.InsertString(j++, _T("T4(0~1000)"));
-	selectGenFunc.InsertString(j++, _T("T5(0~1000)"));
 	
-	j = 0;
-	selectCamFunc.InsertString(j++, _T("ROI_Y_Start(0~959"));
-	selectCamFunc.InsertString(j++, _T("ROI_X_Start(0~1279"));
-	selectCamFunc.InsertString(j++, _T("ROI_Y_End(0~959"));
-	selectCamFunc.InsertString(j++, _T("ROI_X_End(0~1279"));
-	selectCamFunc.InsertString(j++, _T("Auto Gain(0,2"));
-	selectCamFunc.InsertString(j++, _T("Expo(0~65535)"));
-	selectCamFunc.InsertString(j++, _T("GainF(0~255)"));
-	selectCamFunc.InsertString(j++, _T("GainG1(0~255)"));
-	selectCamFunc.InsertString(j++, _T("GainB(0~255)"));
-	selectCamFunc.InsertString(j++, _T("GainR(0~255)"));
-	selectCamFunc.InsertString(j++, _T("GainG2(0~255)"));
-	selectCamFunc.InsertString(j++, _T("Mirror(0,4,8,12)"));
-	selectCamFunc.InsertString(j++, _T("Analog Gain(1,2,4,8)"));
-	selectCamFunc.InsertString(j++, _T("PWM(0~100)"));
-
-	/*((CButton*)GetDlgItem(IDC_CHECK_CAM1))->SetCheck(1);
-	((CButton*)GetDlgItem(IDC_CHECK_CAM2))->SetCheck(1);
-	((CButton*)GetDlgItem(IDC_CHECK_CAM3))->SetCheck(1);*/
 	return TRUE;  
 }
 

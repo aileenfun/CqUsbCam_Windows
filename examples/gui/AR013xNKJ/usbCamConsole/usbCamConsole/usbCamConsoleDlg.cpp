@@ -47,8 +47,10 @@ byte* imgBuf = NULL;
 CCameraCtrl camctrl;
 int f_testStatus = 0;
 long totalDataLen = 0;
+vector<cv::Mat> imageRGB;
 void  CusbCamConsoleDlg::Disp(LPVOID lpParam)
 {
+	WaitForSingleObject(g_mutexDisp,INFINITE);
 	int i = 0, j = 0, k = 0;
 	CImgFrame* imgframe = (CImgFrame*)lpParam;
 	cq_uint8_t* pDataBuffer = imgframe->m_imgBuf;
@@ -63,8 +65,6 @@ void  CusbCamConsoleDlg::Disp(LPVOID lpParam)
 	{
 		imgBuf = new byte[imglen];
 	}
-
-
 	offset = 0;
 	if (show_channel > camctrl.CAM_NUM - 1)
 	{
@@ -72,33 +72,78 @@ void  CusbCamConsoleDlg::Disp(LPVOID lpParam)
 	}
 		memcpy(imgBuf, pDataBuffer + imglen * show_channel, imglen);
 		cv::Mat frame(camctrl.cam[0].height, camctrl.cam[0].width, CV_8UC1, imgBuf);
-		cv::Mat rgbframe(frame);
-		cvtColor(frame, rgbframe, cv::COLOR_BayerRG2BGR);
-		cv::imshow("disp", rgbframe);
+		//cv::Mat rgbframe(frame);
+		cv::Mat bgrframe(frame);
+		cv::Mat dispframe(frame);
+		//cvtColor(frame, rgbframe, cv::COLOR_YUV2RGB_UYVY);
+		//cvtColor(frame, bgrframe, cv::COLOR_YUV2BGR_UYVY);
+		cvtColor(frame, bgrframe, cv::COLOR_BayerRG2BGR);
+		std::string strCamnum;
+		stringstream ss;
+		ss << show_channel;
+
+	 strCamnum = ss.str();
+	
+	 
+	 cv::split(bgrframe, imageRGB);
+	 //求原始图像的RGB分量的均值
+	 double R, G, B;
+	 B = cv::mean(imageRGB[0])[0];
+	 G = cv::mean(imageRGB[1])[0];
+	 R = cv::mean(imageRGB[2])[0];
+
+	 //需要调整的RGB分量的增益
+	 double KR, KG, KB;
+	 KB = (R + G + B) / (3 * B);
+	 KG = (R + G + B) / (3 * G);
+	 KR = (R + G + B) / (3 * R);
+
+	 //调整RGB三个通道各自的值
+	 imageRGB[0] = imageRGB[0] * KB;
+	 imageRGB[1] = imageRGB[1] * KG;
+	 imageRGB[2] = imageRGB[2] * KR;
+
+	 //RGB三通道图像合并
+	 cv::merge(imageRGB, dispframe);
+	 cv::Mat equframe(dispframe);
+	 
+	 cv::Mat LookUpTable(1,256,CV_8U);
+	 uchar* p = LookUpTable.ptr();
+	 for (int i = 0; i < 256; ++i)
+		 p[i] = cv::saturate_cast <uchar>(pow(i / 255.0, 0.7) * 255.0);
+	 cv::Mat res = dispframe.clone();
+	 LUT(dispframe, LookUpTable,res);
+
+	// cv::imshow(strCamnum, dispframe);
+
+		//cv::imshow(strCamnum, bgrframe);
+
+		//cv::imshow("disp", frame);
 		if (savefile)
 		{
-			cv::imwrite("snap1.jpg", rgbframe);
+			cv::imwrite("snap1.jpg", res);
 		}
 	
 	savefile = 0;
+	
+	cv::imshow("disp", res);
 	cv::waitKey(1);
 
-	//ReleaseMutex(g_mutexDisp);
+	ReleaseMutex(g_mutexDisp);
 }
-// ����Ӧ�ó��򡰹��ڡ��˵���� CAboutDlg �Ի���
 
 class CAboutDlg : public CDialogEx
 {
 public:
 	CAboutDlg();
 
-// �Ի�������
+
 	enum { IDD = IDD_ABOUTBOX };
 
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    
 
-// ʵ��
+
 protected:
 	DECLARE_MESSAGE_MAP()
 };
@@ -479,7 +524,7 @@ void CusbCamConsoleDlg::DoDataExchange(CDataExchange* pDX)
 	CDialogEx::DoDataExchange(pDX);
 
 	//DDX_Control(pDX, IDC_CHECK_AUTOGAIN, cbAutoGain);
-	//DDX_Control(pDX, IDC_COMBO1, selectChannel);
+	DDX_Control(pDX, IDC_COMBO1, selectChannel);
 	//DDX_Control(pDX, IDC_FUNC_GENERAL, selectGenFunc);
 	//DDX_Control(pDX, IDC_FUNC_CAM, selectCamFunc);
 }
@@ -498,7 +543,7 @@ BEGIN_MESSAGE_MAP(CusbCamConsoleDlg, CDialogEx)
 	//ON_BN_CLICKED(IDC_RADIO_TRIGMODE_FPGA, &CusbCamConsoleDlg::OnBnClickedRadioTrigmodeFpga)
 	//ON_BN_CLICKED(IDC_RADIO_TRIGMODE_SOFT, &CusbCamConsoleDlg::OnBnClickedRadioTrigmodeSoft)
 	//ON_BN_CLICKED(IDC_RADIO_TRIGMODE_EXT, &CusbCamConsoleDlg::OnBnClickedRadioTrigmodeExt)
-	//ON_EN_CHANGE(IDC_EDIT_FPGATRIG_FREQ, &CusbCamConsoleDlg::OnEnChangeEditFpgatrigFreq)
+	ON_EN_CHANGE(IDC_EDIT_FPGATRIG_FREQ, &CusbCamConsoleDlg::OnEnChangeEditFpgatrigFreq)
 	//ON_BN_CLICKED(IDC_RADIO_MIRROR_NORMAL, &CusbCamConsoleDlg::OnBnClickedRadioMirrorNormal)
 	//ON_BN_CLICKED(IDC_RADIO_MIRROR_X, &CusbCamConsoleDlg::OnBnClickedRadioMirrorX)
 	//ON_BN_CLICKED(IDC_RADIO_MIRROR_Y, &CusbCamConsoleDlg::OnBnClickedRadioMirrorY)
@@ -510,11 +555,13 @@ BEGIN_MESSAGE_MAP(CusbCamConsoleDlg, CDialogEx)
 	//ON_BN_CLICKED(IDC_BUTTON_GEN_FUNC, &CusbCamConsoleDlg::OnBnClickedButtonGenFunc)
 	//ON_BN_CLICKED(IDC_BUTTON_TEST, &CusbCamConsoleDlg::OnBnClickedButtonTest)
 	//ON_BN_CLICKED(IDC_BUTTON_EE, &CusbCamConsoleDlg::OnBnClickedButtonTest2)
-
+	ON_BN_CLICKED(IDC_BUTTON_SAVE, &CusbCamConsoleDlg::OnBnClickedButtonSave)
 	ON_WM_DEVICECHANGE()
 	ON_WM_CLOSE()
 	
 	
+//	ON_CBN_EDITCHANGE(IDC_COMBO1, &CusbCamConsoleDlg::OnCbnEditchangeCombo1)
+ON_CBN_SELCHANGE(IDC_COMBO1, &CusbCamConsoleDlg::OnCbnSelchangeCombo2)
 END_MESSAGE_MAP()
 
 
@@ -538,7 +585,10 @@ BOOL CusbCamConsoleDlg::OnInitDialog()
 			pSysMenu->AppendMenu(MF_STRING, IDM_ABOUTBOX, strAboutMenu);
 		}
 	}
-	
+	selectChannel.InsertString(0, _T("0"));
+	selectChannel.InsertString(1, _T("1"));
+	selectChannel.InsertString(2, _T("2"));
+	selectChannel.InsertString(3, _T("3"));
 	return TRUE;  
 }
 
@@ -630,6 +680,7 @@ void CusbCamConsoleDlg::OnBnClickedButtonOpenUsb()
 		SetDlgItemText(IDC_STATIC_STATUS, str);
 	}
 	totalDataLen = camctrl.getTotalDataLen();
+
 }
 
 
@@ -664,9 +715,8 @@ void CusbCamConsoleDlg::OnBnClickedButtonStopCap()
 		return;
 	}
 	WaitForSingleObject(g_mutexDisp, INFINITE);
+	imageRGB.clear();
 	cv::destroyWindow("disp");
-	cv::destroyWindow("cam1");
-	cv::destroyWindow("cam2");
 	ReleaseMutex(g_mutexDisp);
 
 #if 0
@@ -683,6 +733,7 @@ void CusbCamConsoleDlg::OnBnClickedButtonStopCap()
 #endif
 	m_bIsCapturing = false;
 	SetDlgItemText(IDC_STATIC_STATUS, L"ͣusb closed");
+	
 	if (imgBuf != NULL)
 	{
 		delete imgBuf;
@@ -698,6 +749,7 @@ void CusbCamConsoleDlg::OnBnClickedButtonStopCap()
 		delete imgBuf2;
 		imgBuf2 = NULL;
 	}
+	
 	//h_vw.release();
 }
 
@@ -736,7 +788,7 @@ void CusbCamConsoleDlg::OnBnClickedButtonVedioCap()
 	SetWindowLong(hParentWnd, GWL_STYLE, style);
 	//camctrl.getAllRes();
 
-	if (m_sensorInUse->StartCap(camctrl.getTotalDataLen(), 1, CapImgEntry, this)<0)
+	if (m_sensorInUse->StartCap(camctrl.getTotalDataLen(), 2, CapImgEntry, this)<0)
 	{
 		
 		SetDlgItemText(IDC_STATIC_STATUS, L"cap error");
@@ -1178,7 +1230,6 @@ void CusbCamConsoleDlg::OnBnClickedButtonRdDevSn()
 
 void CusbCamConsoleDlg::OnBnClickedButtonWrDevSn()
 {
-	// TODO: �ڴ����ӿؼ�֪ͨ�����������
 	if (!m_bUsbOpen)
 	{
 		SetDlgItemText(IDC_STATIC_STATUS, L"USBδ�򿪡�");
@@ -1232,14 +1283,14 @@ void CusbCamConsoleDlg::OnClose()
 void CusbCamConsoleDlg::OnCbnSelchangeCombo1()
 {
 	
-	for (int i = 0; i < 3; i++)
+	for (int i = 0; i < camctrl.CAM_NUM; i++)
 	{
 		camctrl.cam[i].checked = 0;
 	}
 	show_channel = selectChannel.GetCurSel();
-	if (show_channel == 4)
+	if (show_channel == camctrl.CAM_NUM+1)
 	{
-		for (int i = 0; i < 3; i++)
+		for (int i = 0; i < camctrl.CAM_NUM; i++)
 		{
 			camctrl.cam[i].checked = 1;
 		}
@@ -1444,4 +1495,12 @@ void CusbCamConsoleDlg::OnBnClickedButtonRdee()
 	}
 	SetDlgItemText(IDC_EDIT_RDEE, strValue);
 	//watch chData
+}
+
+
+
+
+void CusbCamConsoleDlg::OnCbnSelchangeCombo2()
+{
+	OnCbnSelchangeCombo1();
 }

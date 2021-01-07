@@ -33,20 +33,33 @@ std::wstring s2ws(const std::string& s)
 //Cdisp_matrix dispmtx;
 //CimgDrawCross imgDrawCross;
 PLSFiveCam* mplsdisp;
+
+BOOL CusbCamConsoleDlg::PreTranslateMessage(MSG* pMsg)
+{
+	if ((pMsg->message == WM_KEYDOWN) && (pMsg->wParam == VK_RETURN))
+	{
+		return TRUE;
+	}
+	return CDialogEx::PreTranslateMessage(pMsg);
+
+}
+int hw_width = 1024;
+int hw_height = 1024;
 void CusbCamConsoleDlg::Disp(LPVOID lpParam)
 {
 	CImgFrame* imgframe = (CImgFrame*)lpParam;
 	cq_uint8_t* pDataBuffer = imgframe->m_imgBuf;
+	
 	int sig_width = 640;
 	int sig_height= 360;
-	int imglen = 640 * 360;
+	int imglen = hw_width * hw_height;
 	cv::Mat framelist[5];
 	cv::Mat rframelist[5];
 	cv::Mat dispframelist[5];
-	cv::Mat oneframe(360 * 5, 640, CV_8UC1, pDataBuffer);
+	cv::Mat oneframe(hw_height * 5, hw_width, CV_8UC1, pDataBuffer);
 	for (int i = 0; i < 5; i++)
 	{
-		cv::Mat tempframe(360, 640, CV_8UC1, pDataBuffer + i * imglen);
+		cv::Mat tempframe(hw_height, hw_width, CV_8UC1, pDataBuffer + i * imglen);
 		framelist[i] = tempframe.clone();
 	}
 	cv::Mat mergeimg;
@@ -76,6 +89,7 @@ void CusbCamConsoleDlg::Disp(LPVOID lpParam)
 	dispframelist[mplsdisp->mplsCam[3].dispmtx.dispslot].copyTo(mergeimg(cv::Rect(sig_width * 2, sig_height*0, sig_width, sig_height)));//4
 	dispframelist[mplsdisp->mplsCam[4].dispmtx.dispslot].copyTo(mergeimg(cv::Rect(sig_width * 2, sig_height*2, sig_width, sig_height)));//5
 	cv::namedWindow("disp");
+	cv::moveWindow("disp", 0, 0);
 	cv::imshow("disp", mergeimg);
 	if (f_snap)
 	{
@@ -556,8 +570,8 @@ void CusbCamConsoleDlg::OnBnClickedButtonVedioCap()
 	//SetWindowLong(hParentWnd, GWL_STYLE, style);
 
 	g_byteBitDepthNo = 1;
-	g_iHeight = 360*5;
-	g_iWidth = 640;
+	g_iHeight = hw_height*5;
+	g_iWidth = hw_width;
 	if(m_sensorInUse->StartCap(g_iHeight, g_iWidth, CapImgEntry,this)<0)
 	{
 		SetDlgItemText(IDC_STATIC_STATUS, L"USB设备打开失败！");

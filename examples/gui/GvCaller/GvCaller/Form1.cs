@@ -58,14 +58,14 @@ namespace GvCaller
 
         public delegate int CallBack(IntPtr buff);
         public CallBack mInstance;
-        public CallBack mInstance2;
+        //public CallBack mInstance2;
         //change resolution here before set roi
         //if xend-xstart=639, then imgwidth=640
         //if yend-ystart=479, then imgheight=480
         int imgwidth = 4208;
         int imgheight = 3120;
         int devNum = 0;
-        int devNum2 = 0;
+      //  int devNum2 = 0;
         int usbSpeed = 0;
         
         Bitmap bmp;
@@ -82,8 +82,8 @@ namespace GvCaller
             devNum = CQUSBAddInstance(mInstance, imgwidth, imgheight);
            
 
-            mInstance2 = new CallBack(callbackfunc2);
-            devNum2 = CQUSBAddInstance(mInstance2, imgwidth, imgheight);
+           // mInstance2 = new CallBack(callbackfunc2);
+            //devNum2 = CQUSBAddInstance(mInstance2, imgwidth, imgheight);
            
 
 
@@ -205,21 +205,21 @@ namespace GvCaller
         private void StopButton_Click(object sender, EventArgs e)
         {
             int res= CQUSBStopCap(devNum);
-            CQUSBStopCap(devNum2);
+            //CQUSBStopCap(devNum2);
         }
 
         private void TestButton_Click(object sender, EventArgs e)
         {
             CQUSBOpenUSB(devNum);
 
-            CQUSBOpenUSB(devNum2);
+           // CQUSBOpenUSB(devNum2);
 
         }
 
         private void start_Click(object sender, EventArgs e)
         {
             CQUSBStartCap(devNum);
-            CQUSBStartCap(devNum2);
+            //CQUSBStartCap(devNum2);
             if (usbSpeed > 0)
             {
                 
@@ -234,17 +234,16 @@ namespace GvCaller
         {
             int expo=int.Parse(tb_expo.Text);
             CQUSBSetExpo_PLS1Cam(expo,devNum);
-            CQUSBSetExpo_PLS1Cam(expo, devNum2);
+            //CQUSBSetExpo_PLS1Cam(expo, devNum2);
         }
 
-        private void button1_Click_1(object sender, EventArgs e)
+        private void button1_Click_1(object sender, EventArgs e)//setROI
         {
-            imgwidth = int.Parse(tb_xend.Text);
-            imgheight = int.Parse(tb_yend.Text);
+           
             initBitMap();
             CQUSBSetResolution(imgwidth, devNum);
 
-            CQUSBSetResolution(imgwidth, devNum2);
+            //CQUSBSetResolution(imgwidth, devNum2);
         }
 
         private void btnWrEE_Click(object sender, EventArgs e)
@@ -260,6 +259,26 @@ namespace GvCaller
             int value=CQUSBRdEE(addr,  devNum);
             textBox2.Text = value.ToString();
 
+        }
+
+        private void radioButton1_CheckedChanged(object sender, EventArgs e)
+        {
+            CQUSBSetResolution(4108, devNum);
+        }
+
+        private void radioButton2_CheckedChanged(object sender, EventArgs e)
+        {
+            CQUSBSetResolution(2104, devNum);
+        }
+
+        private void radioButton3_CheckedChanged(object sender, EventArgs e)
+        {
+            CQUSBSetResolution(1052, devNum);
+        }
+
+        private void radioButton4_CheckedChanged(object sender, EventArgs e)
+        {
+            CQUSBSetResolution(526, devNum);
         }
     }
 }

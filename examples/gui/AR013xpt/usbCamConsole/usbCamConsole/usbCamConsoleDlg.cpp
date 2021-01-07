@@ -72,7 +72,10 @@ void  CusbCamConsoleDlg::Disp(LPVOID lpParam)
 	}
 		memcpy(imgBuf, pDataBuffer + imglen * show_channel, imglen);
 		cv::Mat frame(camctrl.cam[0].height, camctrl.cam[0].width, CV_8UC1, imgBuf);
-		cv::imshow("disp", frame);
+		cv::Mat frameRGB, frameOut;
+		cv::cvtColor(frame, frameRGB, CV_BayerBG2BGR);
+
+		cv::imshow("disp", frameRGB);
 		if (savefile)
 		{
 			cv::imwrite("snap1.jpg", frame);

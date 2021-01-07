@@ -137,4 +137,6 @@ public:
 	afx_msg void OnEnChangeEditFpgatrigFreq6();
 	afx_msg void OnBnClickedButtonSet640();
 	afx_msg void OnBnClickedButtonRdee();
+//	afx_msg void OnCbnEditchangeCombo1();
+	afx_msg void OnCbnSelchangeCombo2();
 };

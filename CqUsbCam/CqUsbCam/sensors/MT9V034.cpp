@@ -23,7 +23,19 @@
 //#include "StdAfx.h"
 
 
+static cq_int32_t MT9V034_InitSensor(CCyUSBDevice *pUsbHandle)
+{
+	USB_ORDER     m_sUsbOrder;
+	cq_uint8_t  m_byData[64];
 
+	m_sUsbOrder.pData = m_byData;
+	m_sUsbOrder.ReqCode = 0xF0;
+	m_sUsbOrder.DataBytes = 2;
+	m_sUsbOrder.Direction = 0;
+
+
+	return SendOrder(pUsbHandle, &m_sUsbOrder);
+}
 static cq_int32_t MT9V034_WrSensorReg(CCyUSBDevice *pUsbHandle, const cq_uint32_t iAddr, const cq_uint32_t iValue)
 {
 	USB_ORDER     m_sUsbOrder;
@@ -401,7 +413,7 @@ static tagSensor sensor_MT9V034=
 	1,
 	2,
 
-	NULL,
+	MT9V034_InitSensor,
 	MT9V034_WrSensorReg,
 	MT9V034_RdSensorReg,
 	MT9V034_WrFpgaReg,

@@ -99,6 +99,8 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include="..\..\..\..\..\CqUsbCam\CqUsbCam.sln" />
+    <None Include="..\..\..\..\..\CqUsbCam\CqUsbCam\CqUsbCam.vcxproj" />
     <None Include="ReadMe.txt" />
     <None Include="res\usbCamConsole.ico" />
     <None Include="res\usbCamConsole.rc2" />

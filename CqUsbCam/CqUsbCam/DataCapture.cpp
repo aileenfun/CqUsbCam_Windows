@@ -19,7 +19,7 @@
 //#include <unistd.h>
 #include <stdio.h>
 #include "Types.h"
-
+//#define _USE752
 CDataCapture::CDataCapture(const cq_uint32_t iWidth, const cq_uint32_t iHeight)
 {
 
@@ -75,8 +75,14 @@ cq_int32_t CDataCapture::Open()
 	m_pReadBuff=NULL;
 	try
 	{
+#ifdef _USE752
 		m_pReadBuff=new cq_uint8_t[361472];
-		//m_pReadBuff = new cq_uint8_t[(m_iWidth * m_iHeight) * 2];
+#else
+		m_pReadBuff = new cq_uint8_t[(m_iWidth * m_iHeight) * 2];
+
+#endif // _USE752
+
+		
 	}
 	catch(const bad_alloc& e)
 	{
@@ -100,13 +106,6 @@ cq_int32_t CDataCapture::Open()
 	assert(NULL!=m_pReadBuff);
 	assert(NULL!=m_pInputframe);
 
-	//memset(m_pInData,0,(m_iWidth*m_iHeight+512)*4*sizeof(cq_byte_t));
-	//memset(m_pOutData,0,(m_iWidth*m_iHeight+512)*sizeof(cq_byte_t));
-	//memset(m_pReadBuff,0,(m_iWidth*m_iHeight+512)*sizeof(cq_byte_t));
-	
-	//memset(m_pInputframe,0,sizeof(CImgFrame));
-
-	//pthread_create( &m_pThread, NULL, ThreadAdapter, this );
 	m_hThread = (HANDLE)_beginthreadex(NULL, 0, ThreadAdapter, this, 0, NULL);
 
 	m_bCapture=true;
@@ -169,13 +168,20 @@ int CDataCapture::ThreadFunc()
 	while (true==m_bCapture)
 	{
 		transferred=m_iWidth*m_iHeight+512;
+#ifdef _USE752
+		transferred = 361472;
+#else
 		//if (transferred > 1048576)
 		//	transferred = 1048576;
 		//if (transferred > 2097152)
 		//	transferred = 2097152;
-		if (transferred > 3145728)
-			transferred = 3145728;
-		transferred = 361472;
+		/*if (transferred > 3145728)
+			transferred = 3145728;*/
+		if (transferred > 4194304)
+			transferred = 4194304;
+		//
+#endif
+
 		ReadData(m_pReadBuff,transferred);
 
         if(transferred>0)
@@ -291,6 +297,8 @@ cq_int32_t CDataCapture::Input(const cq_uint8_t* lpData, const cq_uint32_t dwSiz
 			m_pInputframe->mode2 = m_pInData[i + 11];
 			m_pInputframe->temper = m_pInData[i + 12];
             i=i+16;
+			//memcpy(m_pInputframe->IMUdata, m_pInData+i+17, 14);
+			//i = i + 32;
            // memcpy(m_pOutData,m_pInData+i,datalen);
             //memcpy(m_pInputframe->m_imgBuf,m_pOutData,m_iWidth*m_iHeight);
 			

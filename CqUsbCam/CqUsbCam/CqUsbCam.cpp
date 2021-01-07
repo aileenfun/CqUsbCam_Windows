@@ -755,23 +755,19 @@ public:
 	 {
 		 res = 1;
 	 }
+	 else if (res == 1052)
+	 {
+		 res = 2;
+	 }
+	 else if (res == 526)
+	 {
+		 res = 526;
+	 }
 	 else
 	 {
 		 return -1;
 	 }
 	 g_vecDev[devNum]->WrFpgaReg(0x25, res);
-	 if (res == 0)
-	 {
-		 wrSensorCmd(3, 0x0346, 0, devNum);
-		 wrSensorCmd(3,0x34A, 3127, devNum);
-		 wrSensorCmd(3,0x34E, 3120, devNum);
-	 }
-	 else
-	 {
-		 wrSensorCmd(3,0x346, 780,devNum);
-		 wrSensorCmd(3,0x34A, 2339, devNum);
-		 wrSensorCmd(3,0x34E,1560, devNum);
-	 }
 	 return 1;
  }
  cq_int32_t CQUSBWrEeprom(int addr, int value, int devNum)

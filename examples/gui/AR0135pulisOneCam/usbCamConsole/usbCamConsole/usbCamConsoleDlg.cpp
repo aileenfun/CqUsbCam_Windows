@@ -34,30 +34,44 @@ std::wstring s2ws(const std::string& s)
 //CimgDrawCross imgDrawCross;
 PLSFiveCam* mplsdisp;
 #define camcnt 1
+BOOL CusbCamConsoleDlg::PreTranslateMessage(MSG* pMsg)
+{
+	if ((pMsg->message == WM_KEYDOWN) && (pMsg->wParam == VK_RETURN))
+	{
+		return TRUE;
+	}
+	return CDialogEx::PreTranslateMessage(pMsg);
+
+}
 void CusbCamConsoleDlg::Disp(LPVOID lpParam)
 {
 	CImgFrame* imgframe = (CImgFrame*)lpParam;
 	cq_uint8_t* pDataBuffer = imgframe->m_imgBuf;
-	int sig_width = 640;
-	int sig_height= 360;
-	int imglen = 640 * 360;
+	int sig_width = g_iWidth;
+	int sig_height= g_iHeight;
+	int imglen = sig_width * sig_height;
 	cv::Mat framelist[camcnt];
 	cv::Mat rframelist[camcnt];
 	cv::Mat dispframelist[camcnt];
-	cv::Mat oneframe(360 * camcnt, 640, CV_8UC1, pDataBuffer);
-	for (int i = 0; i < camcnt; i++)
-	{
-		cv::Mat tempframe(360, 640, CV_8UC1, pDataBuffer + i * imglen);
-		framelist[i] = tempframe.clone();
-	}
-	cv::Mat mergeimg;
-	mergeimg.create(360, 640, CV_8UC1);
+	cv::Mat tempframe(g_iHeight, g_iWidth, CV_8UC1, pDataBuffer );
+	//cv::Mat oneframe(360 * camcnt, 640, CV_8UC1, pDataBuffer);
+	//for (int i = 0; i < camcnt; i++)
+	//{
+	//	cv::Mat tempframe(g_iHeight, g_iWidth, CV_8UC1, pDataBuffer + i * imglen);
+	//	framelist[i] = tempframe.clone();
+	//}
+	cv::imshow("disp", tempframe);
+	
+	cv::waitKey(1);
+	//cv::Mat mergeimg;
+	//mergeimg.create(360, 640, CV_8UC1);
 	
 	//framelist[0].copyTo(mergeimg(cv::Rect(sig_width * 0, sig_height*0, sig_width, sig_height)));//1
 	//framelist[1].copyTo(mergeimg(cv::Rect(sig_width * 0, sig_height*2, sig_width, sig_height)));//2
 	//framelist[2].copyTo(mergeimg(cv::Rect(sig_width * 1, sig_height*1,sig_width, sig_height)));//3
 	//framelist[3].copyTo(mergeimg(cv::Rect(sig_width * 2, sig_height*0, sig_width, sig_height)));//4
 	//framelist[4].copyTo(mergeimg(cv::Rect(sig_width * 2, sig_height*2, sig_width, sig_height)));//5
+	/*
 	try
 	{
 		int k = 0;
@@ -90,6 +104,7 @@ void CusbCamConsoleDlg::Disp(LPVOID lpParam)
 		LPCWSTR result = stemp.c_str();
 		OutputDebugString(result);
 	}
+	*/
 }
 // 用于应用程序“关于”菜单项的 CAboutDlg 对话框
 
@@ -231,6 +246,8 @@ BEGIN_MESSAGE_MAP(CusbCamConsoleDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON_LOAD_CONFIG, &CusbCamConsoleDlg::OnBnClickedButtonLoadConfig)
 	ON_BN_CLICKED(IDC_BTN_SNAP, &CusbCamConsoleDlg::OnBnClickedBtnSnap)
 	ON_BN_CLICKED(IDC_BUTTON_EXPO_SET3, &CusbCamConsoleDlg::OnBnClickedButtonExpoSet3)
+	ON_BN_CLICKED(IDC_BUTTON_WR_EEPROM, &CusbCamConsoleDlg::OnBnClickedButtonWrEeprom)
+	ON_BN_CLICKED(IDC_BUTTON_RD_EEPROM, &CusbCamConsoleDlg::OnBnClickedButtonRdEeprom)
 END_MESSAGE_MAP()
 
 
@@ -528,8 +545,8 @@ void CusbCamConsoleDlg::OnBnClickedButtonVedioCap()
 	//SetWindowLong(hParentWnd, GWL_STYLE, style);
 
 	g_byteBitDepthNo = 1;
-	g_iHeight = 360*5;
-	g_iWidth = 640;
+	g_iHeight = 3120;
+	g_iWidth = 4208;
 	if(m_sensorInUse->StartCap(g_iHeight, g_iWidth, CapImgEntry,this)<0)
 	{
 		SetDlgItemText(IDC_STATIC_STATUS, L"USB设备打开失败！");
@@ -550,7 +567,8 @@ void CusbCamConsoleDlg::OnBnClickedButtonVedioCap()
 	/************************************************************/
 
 	SetTimer(1, 1000, NULL);
-
+	cv::namedWindow("disp");
+	cv::moveWindow("disp", 0, 0);
 	m_bIsCapturing = true;
 	SetDlgItemText(IDC_STATIC_STATUS, L"采集中...");
 }
@@ -1050,7 +1068,12 @@ void CusbCamConsoleDlg::OnBnClickedButtonCheckSpeed()
 
 }
 
+struct arbFuncStruct
+{
+	int FuncNum;
 
+	USB_ORDER order;
+};
 void CusbCamConsoleDlg::OnBnClickedButtonWrEeprom()
 {
 	// TODO: 在此添加控件通知处理程序代码
@@ -1066,9 +1089,23 @@ void CusbCamConsoleDlg::OnBnClickedButtonWrEeprom()
 
 	cq_uint16_t iAddr = str2hex(strAddr);
 	cq_uint16_t iValue = str2hex(strValue);
+	const int buffsize = 256;
+	cq_uint8_t		chData[buffsize];
+	arbFuncStruct arbFunc;
+	arbFunc.FuncNum = 0xBA;
+	arbFunc.order.ReqCode = arbFunc.FuncNum;
+	arbFunc.order.pData = chData;
+	arbFunc.order.Direction = ORDER_OUT;
+	arbFunc.order.DataBytes = 2;
+	arbFunc.order.Value = 1;
+	arbFunc.order.Index = 0;
+	arbFunc.order.pData = chData;
+	memcpy(chData, &iValue, sizeof(cq_uint16_t));
+	m_sensorInUse->ArbitrFunc((void*)&arbFunc);
 
-	m_sensorInUse->WrEeprom(iAddr, iValue);
+	//m_sensorInUse->WrEeprom(iAddr, iValue);
 	SetDlgItemText(IDC_STATIC_STATUS, L"写EEPROM。");
+
 }
 
 
@@ -1080,12 +1117,25 @@ void CusbCamConsoleDlg::OnBnClickedButtonRdEeprom()
 		SetDlgItemText(IDC_STATIC_STATUS, L"USB未打开。");
 		return;
 	}
+	const int buffsize = 256;
+	cq_uint8_t		chData[buffsize];
+	arbFuncStruct arbFunc;
+	arbFunc.FuncNum = 0xBB;
+	arbFunc.order.ReqCode = arbFunc.FuncNum;
+	arbFunc.order.pData = chData;
+	arbFunc.order.Direction = ORDER_IN;
+	arbFunc.order.DataBytes = 2;
+	arbFunc.order.Value = 1;
+	arbFunc.order.Index = 0;
+	arbFunc.order.pData = chData;
+	m_sensorInUse->ArbitrFunc((void*)&arbFunc);
+
 	CString strAddr;
 	GetDlgItemText(IDC_EDIT_EEPROM_ADDR, strAddr);
 	cq_uint32_t iAddr = str2hex(strAddr);
-	cq_uint8_t irxval;
+	cq_uint16_t irxval;
 	cq_uint32_t len=1;
-	m_sensorInUse->RrEeprom(iAddr, &irxval,len);
+	memcpy(&irxval,chData,2);
 	CString s_temp;
 	s_temp.Format(_T("%02x"), irxval);
 	SetDlgItemText(IDC_EDIT_EEPROM_VALUE, s_temp);

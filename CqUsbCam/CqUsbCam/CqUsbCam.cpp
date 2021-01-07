@@ -747,26 +747,6 @@ public:
 	 if (devNum > g_vecDev.size())return -2;
 	 devNum = devNum - 1;
 
-	 if (res == 4208)
-	 {
-		 res = 0;
-	 }
-	 else if(res==2104)
-	 {
-		 res = 1;
-	 }
-	 else if (res == 1052)
-	 {
-		 res = 2;
-	 }
-	 else if (res == 526)
-	 {
-		 res = 526;
-	 }
-	 else
-	 {
-		 return -1;
-	 }
 	 g_vecDev[devNum]->WrFpgaReg(0x25, res);
 	 return 1;
  }

@@ -175,10 +175,10 @@ int CDataCapture::ThreadFunc()
 		//	transferred = 1048576;
 		//if (transferred > 2097152)
 		//	transferred = 2097152;
-		/*if (transferred > 3145728)
-			transferred = 3145728;*/
-		if (transferred > 4194304)
-			transferred = 4194304;
+		if (transferred > 3145728)
+			transferred = 3145728;
+		//if (transferred > 4194304)
+		//	transferred = 4194304;
 		//
 #endif
 
@@ -292,6 +292,10 @@ cq_int32_t CDataCapture::Input(const cq_uint8_t* lpData, const cq_uint32_t dwSiz
 			m_pInputframe->m_timeStamp = m_pInData[i + 3];
 			m_pInputframe->m_timeStamp = m_pInData[i + 4];
 			m_pInputframe->m_timeStamp = m_pInData[i + 5];
+			m_pInputframe->m_height = m_pInData[i + 6]<<8;
+			m_pInputframe->m_height += m_pInData[i+7];
+			m_pInputframe->m_width= m_pInData[i + 8]<<8;
+			m_pInputframe->m_width += m_pInData[i + 9];
 
 			m_pInputframe->mode = m_pInData[i + 10];
 			m_pInputframe->mode2 = m_pInData[i + 11];
@@ -301,9 +305,11 @@ cq_int32_t CDataCapture::Input(const cq_uint8_t* lpData, const cq_uint32_t dwSiz
 			//i = i + 32;
            // memcpy(m_pOutData,m_pInData+i,datalen);
             //memcpy(m_pInputframe->m_imgBuf,m_pOutData,m_iWidth*m_iHeight);
-			
-
-			::memcpy(m_pInputframe->m_imgBuf, m_pInData + i, m_iWidth * m_iHeight);
+			/*for (int k = 0; k < m_iWidth * m_iHeight;k++)
+			{
+				*(m_pInputframe->m_imgBuf+k) = k;
+			}*/
+			memcpy(m_pInputframe->m_imgBuf, m_pInData + i, m_pInputframe->m_width * m_pInputframe->m_height);
             m_pImgQueue->add(m_pInputframe);
 
             m_lRecvFrameCnt++;

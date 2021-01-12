@@ -47,22 +47,11 @@ void CusbCamConsoleDlg::Disp(LPVOID lpParam)
 {
 	CImgFrame* imgframe = (CImgFrame*)lpParam;
 	cq_uint8_t* pDataBuffer = imgframe->m_imgBuf;
-	int sig_width = g_iWidth;
-	int sig_height= g_iHeight;
-	int imglen = sig_width * sig_height;
-	cv::Mat framelist[camcnt];
-	cv::Mat rframelist[camcnt];
-	cv::Mat dispframelist[camcnt];
-	cv::Mat tempframe(g_iHeight, g_iWidth, CV_8UC1, pDataBuffer );
-	//cv::Mat oneframe(360 * camcnt, 640, CV_8UC1, pDataBuffer);
-	//for (int i = 0; i < camcnt; i++)
-	//{
-	//	cv::Mat tempframe(g_iHeight, g_iWidth, CV_8UC1, pDataBuffer + i * imglen);
-	//	framelist[i] = tempframe.clone();
-	//}
-	cv::imshow("disp", tempframe);
-	
+	cv::Mat tempframe(imgframe->m_height, imgframe->m_width, CV_8UC1, pDataBuffer );
+
+	cv::imshow("disp", tempframe);	
 	cv::waitKey(1);
+
 	//cv::Mat mergeimg;
 	//mergeimg.create(360, 640, CV_8UC1);
 	
@@ -567,7 +556,7 @@ void CusbCamConsoleDlg::OnBnClickedButtonVedioCap()
 	/************************************************************/
 
 	SetTimer(1, 1000, NULL);
-	cv::namedWindow("disp");
+	cv::namedWindow("disp",0);
 	cv::moveWindow("disp", 0, 0);
 	m_bIsCapturing = true;
 	SetDlgItemText(IDC_STATIC_STATUS, L"采集中...");
@@ -1302,15 +1291,16 @@ void CusbCamConsoleDlg::OnBnClickedRadioSkip1()
 
 void CusbCamConsoleDlg::OnBnClickedRadioDp1()
 {
-	OnBnClickedRadioCam1();
+	/*OnBnClickedRadioCam1();
 	if (mpls->getSelectedCnt() > 1)
 	{
 		SetDlgItemText(IDC_STATIC_STATUS, L"只能选中一个相机");
 		return;
-	}
+	}*/
 		
 	int selected_disp = GetCheckedRadioButton(IDC_RADIO_DP1, IDC_RADIO_DP5) - IDC_RADIO_DP1;
-	mpls->setFunction(Func_DispSlot, selected_disp);
+	m_sensorInUse->WrFpgaReg(0x25, selected_disp);
+	//mpls->setFunction(Func_DispSlot, selected_disp);
 	//mpls->dispmtx.dispslot[selected_disp] = selected_cam;
 }
 

@@ -172,7 +172,7 @@ int CDataCapture::ThreadFunc()
 		transferred = 361472;
 #else
 		//if (transferred > 1048576)
-		//	transferred = 1048576;
+			//transferred = 1048576;
 		//if (transferred > 2097152)
 		//	transferred = 2097152;
 		if (transferred > 3145728)

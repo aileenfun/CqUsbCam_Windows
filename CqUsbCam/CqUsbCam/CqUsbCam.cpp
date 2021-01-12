@@ -618,13 +618,12 @@ cq_int32_t CQUSBcsGetFrame(unsigned char* buff)
 	imgready = 0;
 	return cs_height * cs_width;
 }
-cq_int32_t CQUSBAddInstance(csCallBackFuncDel cb,int w, int h)
+cq_int32_t CQUSBAddInstance(csCallBackFuncDel cb)
 {
 	CCqUsbCam* dev = new CCqUsbCam(NULL);
 	g_vecDev.push_back(dev);
 	dev->csCBHandler = cb;
-	cs_width = w;
-	cs_height = h;
+
 	return g_vecDev.size();
 }
 //cq_int32_t CQUSBcsInit( int w = 640, int h = 360)
@@ -636,12 +635,13 @@ cq_int32_t CQUSBAddInstance(csCallBackFuncDel cb,int w, int h)
 //}
 #endif
 
- cq_int32_t CQUSBStartCap(cq_uint32_t devNum)
+ cq_int32_t CQUSBStartCap(cq_uint32_t devNum,int w, int h)
 {
 	if (devNum < 1)return devNum;
 	if (devNum > g_vecDev.size())return -2;
 	devNum = devNum - 1;
-
+	cs_width = w;
+	cs_height = h;
 	if (g_vecDev[devNum]->StartCap(cs_height, cs_width, CQUSBGetImgCallBack, g_vecDev[devNum]) < 0)
 	{
 		return -1;

@@ -168,6 +168,7 @@
     <ClInclude Include="SendOrder.h" />
     <ClInclude Include="SensorCapbablity.h" />
     <ClInclude Include="sensors\AR0135.h" />
+    <ClInclude Include="sensors\MT9V031.h" />
     <ClInclude Include="sensors\MT9V034.h" />
     <ClInclude Include="sensors\SC130GS.h" />
     <ClInclude Include="stdafx.h" />
@@ -196,6 +197,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="sensors\MT9P031.cpp" />
     <ClCompile Include="sensors\MT9V034.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>

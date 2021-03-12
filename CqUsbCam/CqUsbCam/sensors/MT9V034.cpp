@@ -369,8 +369,14 @@ static cq_int32_t MT9V034_SendUsbSpeed2Fpga(CCyUSBDevice *pUsbHandle, const cq_u
 	MT9V034_WrFpgaReg(pUsbHandle, 0x08, chSpeedType);
 	return 0;
 }
+static cq_int32_t ArbitrFunc(CCyUSBDevice *pUsbHandle, LPVOID arg)
+{
+	arbFuncStruct arbfunc;
+	memcpy(&arbfunc, (arbFuncStruct*)arg, sizeof(arbFuncStruct));
+	SendOrder(pUsbHandle, &arbfunc.order);
 
-
+	return 1;
+}
 /*
 static tagSensor sensor_MT9V034=
 {
@@ -438,7 +444,8 @@ static tagSensor sensor_MT9V034=
 	NULL,
 	NULL,
 
-	MT9V034_SoftTrig
+	MT9V034_SoftTrig,
+	ArbitrFunc
 };
 void RegisterSensor_MT9V034(list<tagSensor>& sensorList)
 {

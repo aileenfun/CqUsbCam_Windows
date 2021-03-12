@@ -442,5 +442,5 @@ CQUSBCAM_CSAPI cq_int32_t CQUSBcsGetFrame(unsigned char* buff);
 //CQUSBCAM_CSAPI cq_int32_t CQUSBcsInit(csCallBackFuncDel cb, int w, int h);
 CQUSBCAM_CSAPI cq_int32_t CQUSBSetExpo_PLS1Cam(int expo, int devNum);
 CQUSBCAM_CSAPI cq_int32_t CQUSBSetResolution(int res, int devNum);
-
+CQUSBCAM_CSAPI cq_int32_t CQUSBSetGain_PLS1Cam(int gain, int devNum);
 #endif //  _CQUSBCAM_H_

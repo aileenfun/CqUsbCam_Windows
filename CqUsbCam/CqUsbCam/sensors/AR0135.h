@@ -27,11 +27,5 @@
 
 void RegisterSensor_AR0135(list<tagSensor>& sensorList);
 
-struct arbFuncStruct
-{
-	int FuncNum;
-
-	USB_ORDER order;
-};
 
 #endif // _AR0135_H_

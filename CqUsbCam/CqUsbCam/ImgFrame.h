@@ -23,9 +23,10 @@ public:
 	cq_uint8_t mode2;
 	cq_uint8_t temper;
     cq_uint8_t* m_imgBuf;
-    cq_int8_t IMUdata[14];
+    cq_uint8_t m_imgHead[16];
     CImgFrame(const cq_int32_t width, const cq_int32_t height, const cq_int32_t camNum):m_width(width),m_height(height),m_camNum(camNum)
     {
+
         m_imgBuf=new cq_uint8_t[height*width];
     }
     ~CImgFrame(void)

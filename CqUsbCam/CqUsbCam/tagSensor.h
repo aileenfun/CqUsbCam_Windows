@@ -62,6 +62,7 @@ typedef cq_int32_t (*RdDevID_t)(CCyUSBDevice *, cq_uint8_t *, cq_uint32_t &);
 typedef cq_int32_t (*WrDevSN_t)(CCyUSBDevice *, cq_uint8_t*, cq_uint32_t &);
 typedef cq_int32_t(*RdDevSN_t)(CCyUSBDevice *, cq_uint8_t *, cq_uint32_t &);
 typedef cq_int32_t (*SoftTrig_t)(CCyUSBDevice*);
+
 typedef cq_int32_t(*ArbitrFunc_t)(CCyUSBDevice*, LPVOID lpParam);
 typedef struct 
 {

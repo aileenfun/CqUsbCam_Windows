@@ -35,7 +35,7 @@
 
 #define ORDER_IN 1
 #define ORDER_OUT 0
-
+ 
  typedef struct USB_ORDER_S
 {
 	cq_uint8_t			Target;		//0:TGT_DEVICE;1:TGT_INIFC;2:TGT_ENDPT;3:TGT_OTHER
@@ -61,5 +61,10 @@
 	}
 }USB_ORDER,*PUSB_ORDER;
 
- 
+ struct arbFuncStruct
+ {
+	 int FuncNum;
+
+	 USB_ORDER order;
+ };
 #endif // _TYPES_H_

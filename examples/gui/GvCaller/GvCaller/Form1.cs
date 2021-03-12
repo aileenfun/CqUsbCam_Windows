@@ -47,6 +47,9 @@ namespace GvCaller
         [DllImport(@"CqUsbCam.dll", EntryPoint = "CQUSBSetExpo_PLS1Cam", CallingConvention = CallingConvention.Cdecl)]
         public static extern int CQUSBSetExpo_PLS1Cam(int expo,int devNum);
 
+        [DllImport(@"CqUsbCam.dll", EntryPoint = "CQUSBSetGain_PLS1Cam", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int CQUSBSetGain_PLS1Cam(int gain, int devNum);
+
         [DllImport(@"CqUsbCam.dll", EntryPoint = "CQUSBSetResolution", CallingConvention = CallingConvention.Cdecl)]
         public static extern int CQUSBSetResolution(int res, int devNum);
 
@@ -286,6 +289,12 @@ namespace GvCaller
             CQUSBSetResolution(3, devNum);
             imgwidth = 528;
             imgheight = 390;
+        }
+
+        private void button1_Click_2(object sender, EventArgs e)
+        {
+            int gain = int.Parse(tb_gain.Text);
+            CQUSBSetGain_PLS1Cam(gain, devNum);
         }
     }
 }

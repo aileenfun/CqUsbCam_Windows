@@ -172,14 +172,16 @@ int CDataCapture::ThreadFunc()
 		transferred = 361472;
 #else
 		//if (transferred > 1048576)
-			//transferred = 1048576;
+		//	transferred = 1048576;
 		//if (transferred > 2097152)
 		//	transferred = 2097152;
 		if (transferred > 3145728)
 			transferred = 3145728;
 		//if (transferred > 4194304)
 		//	transferred = 4194304;
+		//transferred = 1024 * 512;
 		//
+		//transferred = 361472;
 #endif
 
 		ReadData(m_pReadBuff,transferred);
@@ -288,6 +290,8 @@ cq_int32_t CDataCapture::Input(const cq_uint8_t* lpData, const cq_uint32_t dwSiz
 
         if(m_pInData[i]==0x33&&m_pInData[i+1]==0xcc&&m_pInData[i+14]==0x22&&m_pInData[i+15]==0xdd&&b_header==false)
         {
+			memcpy(m_pInputframe->m_imgHead, m_pInData + i, 16);
+
 			m_pInputframe->m_timeStamp = m_pInData[i+2];
 			m_pInputframe->m_timeStamp = m_pInData[i + 3];
 			m_pInputframe->m_timeStamp = m_pInData[i + 4];
@@ -300,6 +304,7 @@ cq_int32_t CDataCapture::Input(const cq_uint8_t* lpData, const cq_uint32_t dwSiz
 			m_pInputframe->mode = m_pInData[i + 10];
 			m_pInputframe->mode2 = m_pInData[i + 11];
 			m_pInputframe->temper = m_pInData[i + 12];
+			
             i=i+16;
 			//memcpy(m_pInputframe->IMUdata, m_pInData+i+17, 14);
 			//i = i + 32;

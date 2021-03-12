@@ -50,6 +50,9 @@
             this.radioButton3 = new System.Windows.Forms.RadioButton();
             this.radioButton2 = new System.Windows.Forms.RadioButton();
             this.radioButton1 = new System.Windows.Forms.RadioButton();
+            this.button1 = new System.Windows.Forms.Button();
+            this.label2 = new System.Windows.Forms.Label();
+            this.tb_gain = new System.Windows.Forms.TextBox();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
             this.groupBox1.SuspendLayout();
@@ -67,7 +70,7 @@
             // 
             // button2
             // 
-            this.button2.Location = new System.Drawing.Point(1486, 277);
+            this.button2.Location = new System.Drawing.Point(1501, 230);
             this.button2.Margin = new System.Windows.Forms.Padding(4);
             this.button2.Name = "button2";
             this.button2.Size = new System.Drawing.Size(100, 29);
@@ -78,7 +81,7 @@
             // 
             // tb_expo
             // 
-            this.tb_expo.Location = new System.Drawing.Point(1514, 365);
+            this.tb_expo.Location = new System.Drawing.Point(1469, 294);
             this.tb_expo.Margin = new System.Windows.Forms.Padding(4);
             this.tb_expo.Name = "tb_expo";
             this.tb_expo.Size = new System.Drawing.Size(132, 25);
@@ -88,7 +91,7 @@
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(1452, 369);
+            this.label1.Location = new System.Drawing.Point(1407, 298);
             this.label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(39, 15);
@@ -98,7 +101,7 @@
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(1407, 318);
+            this.label6.Location = new System.Drawing.Point(1407, 265);
             this.label6.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(167, 15);
@@ -107,7 +110,7 @@
             // 
             // button3
             // 
-            this.button3.Location = new System.Drawing.Point(1548, 400);
+            this.button3.Location = new System.Drawing.Point(1503, 329);
             this.button3.Margin = new System.Windows.Forms.Padding(4);
             this.button3.Name = "button3";
             this.button3.Size = new System.Drawing.Size(100, 29);
@@ -121,7 +124,7 @@
             this.cb_expoauto.AutoSize = true;
             this.cb_expoauto.Checked = true;
             this.cb_expoauto.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.cb_expoauto.Location = new System.Drawing.Point(1454, 409);
+            this.cb_expoauto.Location = new System.Drawing.Point(1409, 338);
             this.cb_expoauto.Margin = new System.Windows.Forms.Padding(4);
             this.cb_expoauto.Name = "cb_expoauto";
             this.cb_expoauto.Size = new System.Drawing.Size(61, 19);
@@ -132,7 +135,7 @@
             // label7
             // 
             this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(1407, 290);
+            this.label7.Location = new System.Drawing.Point(1407, 237);
             this.label7.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(67, 15);
@@ -141,7 +144,7 @@
             // 
             // SavePicButton
             // 
-            this.SavePicButton.Location = new System.Drawing.Point(1454, 494);
+            this.SavePicButton.Location = new System.Drawing.Point(1503, 447);
             this.SavePicButton.Margin = new System.Windows.Forms.Padding(4);
             this.SavePicButton.Name = "SavePicButton";
             this.SavePicButton.Size = new System.Drawing.Size(100, 29);
@@ -152,7 +155,7 @@
             // 
             // StopButton
             // 
-            this.StopButton.Location = new System.Drawing.Point(1454, 451);
+            this.StopButton.Location = new System.Drawing.Point(1503, 484);
             this.StopButton.Margin = new System.Windows.Forms.Padding(4);
             this.StopButton.Name = "StopButton";
             this.StopButton.Size = new System.Drawing.Size(100, 29);
@@ -175,7 +178,7 @@
             // FrameRateLabel
             // 
             this.FrameRateLabel.AutoSize = true;
-            this.FrameRateLabel.Location = new System.Drawing.Point(1452, 258);
+            this.FrameRateLabel.Location = new System.Drawing.Point(1407, 205);
             this.FrameRateLabel.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.FrameRateLabel.Name = "FrameRateLabel";
             this.FrameRateLabel.Size = new System.Drawing.Size(87, 15);
@@ -194,7 +197,7 @@
             // 
             // textBox1
             // 
-            this.textBox1.Location = new System.Drawing.Point(1454, 551);
+            this.textBox1.Location = new System.Drawing.Point(1421, 550);
             this.textBox1.Margin = new System.Windows.Forms.Padding(4);
             this.textBox1.Name = "textBox1";
             this.textBox1.Size = new System.Drawing.Size(132, 25);
@@ -203,7 +206,7 @@
             // 
             // btnWrEE
             // 
-            this.btnWrEE.Location = new System.Drawing.Point(1454, 595);
+            this.btnWrEE.Location = new System.Drawing.Point(1421, 594);
             this.btnWrEE.Margin = new System.Windows.Forms.Padding(4);
             this.btnWrEE.Name = "btnWrEE";
             this.btnWrEE.Size = new System.Drawing.Size(100, 29);
@@ -214,7 +217,7 @@
             // 
             // textBox2
             // 
-            this.textBox2.Location = new System.Drawing.Point(1606, 551);
+            this.textBox2.Location = new System.Drawing.Point(1573, 550);
             this.textBox2.Margin = new System.Windows.Forms.Padding(4);
             this.textBox2.Name = "textBox2";
             this.textBox2.Size = new System.Drawing.Size(132, 25);
@@ -223,7 +226,7 @@
             // 
             // btnRdEE
             // 
-            this.btnRdEE.Location = new System.Drawing.Point(1606, 595);
+            this.btnRdEE.Location = new System.Drawing.Point(1573, 594);
             this.btnRdEE.Margin = new System.Windows.Forms.Padding(4);
             this.btnRdEE.Name = "btnRdEE";
             this.btnRdEE.Size = new System.Drawing.Size(100, 29);
@@ -291,11 +294,44 @@
             this.radioButton1.UseVisualStyleBackColor = true;
             this.radioButton1.CheckedChanged += new System.EventHandler(this.radioButton1_CheckedChanged);
             // 
+            // button1
+            // 
+            this.button1.Location = new System.Drawing.Point(1503, 401);
+            this.button1.Margin = new System.Windows.Forms.Padding(4);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(100, 29);
+            this.button1.TabIndex = 31;
+            this.button1.Text = "setGain";
+            this.button1.UseVisualStyleBackColor = true;
+            this.button1.Click += new System.EventHandler(this.button1_Click_2);
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(1407, 370);
+            this.label2.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(39, 15);
+            this.label2.TabIndex = 30;
+            this.label2.Text = "Gain";
+            // 
+            // tb_gain
+            // 
+            this.tb_gain.Location = new System.Drawing.Point(1469, 366);
+            this.tb_gain.Margin = new System.Windows.Forms.Padding(4);
+            this.tb_gain.Name = "tb_gain";
+            this.tb_gain.Size = new System.Drawing.Size(132, 25);
+            this.tb_gain.TabIndex = 29;
+            this.tb_gain.Text = "0.5";
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1774, 655);
+            this.Controls.Add(this.button1);
+            this.Controls.Add(this.label2);
+            this.Controls.Add(this.tb_gain);
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.btnRdEE);
             this.Controls.Add(this.textBox2);
@@ -349,6 +385,9 @@
         private System.Windows.Forms.RadioButton radioButton3;
         private System.Windows.Forms.RadioButton radioButton2;
         private System.Windows.Forms.RadioButton radioButton1;
+        private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.TextBox tb_gain;
     }
 }
 

@@ -34,6 +34,7 @@ std::wstring s2ws(const std::string& s)
 //CimgDrawCross imgDrawCross;
 PLSFiveCam* mplsdisp;
 #define camcnt 1
+int b_save_file = 0;
 BOOL CusbCamConsoleDlg::PreTranslateMessage(MSG* pMsg)
 {
 	if ((pMsg->message == WM_KEYDOWN) && (pMsg->wParam == VK_RETURN))
@@ -50,6 +51,22 @@ void CusbCamConsoleDlg::Disp(LPVOID lpParam)
 	cv::Mat tempframe(imgframe->m_height, imgframe->m_width, CV_8UC1, pDataBuffer );
 
 	cv::imshow("disp", tempframe);	
+	if (f_snap)
+	{
+		f_snap = 0;
+		CString strName;
+		CString camFolder;
+				int iFileIndex = 1;
+				do
+				{
+					strName.Format(L"c:\\c6UDP\\V_%d.bmp", iFileIndex);
+					++iFileIndex;
+				} while (_waccess(strName, 0) == 0);
+				CT2CA pszConvertedAnsiString(strName);
+				std::string cvfilename(pszConvertedAnsiString);
+				
+				cv::imwrite(cvfilename, tempframe);
+	}
 	cv::waitKey(1);
 
 	//cv::Mat mergeimg;
@@ -1056,13 +1073,13 @@ void CusbCamConsoleDlg::OnBnClickedButtonCheckSpeed()
 	}
 
 }
-
+/*
 struct arbFuncStruct
 {
 	int FuncNum;
 
 	USB_ORDER order;
-};
+};*/
 void CusbCamConsoleDlg::OnBnClickedButtonWrEeprom()
 {
 	// TODO: 在此添加控件通知处理程序代码
@@ -1417,6 +1434,7 @@ void CusbCamConsoleDlg::OnBnClickedButtonLoadConfig()
 void CusbCamConsoleDlg::OnBnClickedBtnSnap()
 {
 	f_snap = 1;
+
 }
 
 void CusbCamConsoleDlg::OnBnClickedButtonExpoSet3()

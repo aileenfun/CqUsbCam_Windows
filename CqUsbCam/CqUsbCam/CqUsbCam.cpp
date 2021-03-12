@@ -24,6 +24,7 @@
 #include "./sensors/MT9V034.h"
 #include "./sensors/MT9M001.h"
 #include "./sensors/SC130GS.h"
+#include "./sensors/MT9P031.h"
 #include <assert.h>
 
 
@@ -51,6 +52,7 @@ CCqUsbCam::CCqUsbCam(HANDLE h)
 	RegisterSensor_MT9V034(m_sensorList);
 	RegisterSensor_MT9M001(m_sensorList);
 	RegisterSensor_SC130GS(m_sensorList);
+	RegisterSensor_MT9P031(m_sensorList);
 
 	m_pUsbHandle=new CCyUSBDevice(h);
 	assert(NULL!=m_pUsbHandle);
@@ -109,7 +111,7 @@ cq_int32_t CCqUsbCam::OpenUSB(cq_uint32_t usbNum)
 
 
 		devInfo_t devInfo;
-		GetDevInfo(devInfo);
+		//GetDevInfo(devInfo);
 
 		string strSensorType;
 		string strManufactureName;
@@ -134,7 +136,7 @@ cq_int32_t CCqUsbCam::OpenUSB(cq_uint32_t usbNum)
 		else
 			//return -2;//sensor type����
 			strSensorType = "SC130GS";
-		strSensorType = "AR0135";
+		strSensorType = "MT9V034";
 		if(0 != SelectSensor(&strSensorType))
 			return -3;//��֧�ָ��ͺ�sensor
 
@@ -740,6 +742,35 @@ public:
 	 devNum = devNum - 1;
 
 	 wrSensorCmd(0, 0x0202, expo, devNum);
+ }
+ cq_int32_t CQUSBSetGain_PLS1Cam(int gain, int devNum)
+ {
+	 if (devNum < 1)return devNum;
+	 if (devNum > g_vecDev.size())return -2;
+	 devNum = devNum - 1;
+	 switch (gain)
+	 {
+	 case 0:
+		 gain = 0x2008;
+		 break;
+	 case 1:
+		 gain = 0x2010;
+		 break;
+	 case 2:
+		 gain = 0x2020;
+		 break;
+	 case 4:
+		 gain = 0x2030;
+		 break;
+	 case 8:
+		 gain = 0x203F;
+		 break;
+	 default:
+		 gain = 0x2008;
+		 break;
+
+	 }
+	 wrSensorCmd(0, 0x305E, gain, devNum);
  }
  cq_int32_t CQUSBSetResolution(int res, int devNum)
  {

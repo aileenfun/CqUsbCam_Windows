@@ -12,7 +12,8 @@
  *                                                                                	*
  \***************************************************************************************/
 //#include "../stdafx.h"
-#include "StdAfx.h"
+//#include "StdAfx.h"
+#include "../StdAfx.h"
 #include <string.h>
 
 #include "MT9M001.h"

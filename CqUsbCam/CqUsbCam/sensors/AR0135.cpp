@@ -12,7 +12,7 @@
  *                                                                                	*
  \***************************************************************************************/
 #include "../StdAfx.h"
-
+#include "../stdafx.h"
 #include "AR0135.h"
 #include "../SensorCapbablity.h"
 #include "../SendOrder.h"

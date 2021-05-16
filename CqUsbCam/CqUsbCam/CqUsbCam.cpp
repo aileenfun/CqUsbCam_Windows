@@ -16,7 +16,13 @@
 //
 
 #include "StdAfx.h"
+#include "tagSensor.h"
+#include "ImgFrame.h"
+#include "wqueue.h"
+#include "DataCapture.h"
+#include "DataProcess.h"
 
+#include <vector>
 #include "CqUsbCam.h"
 #include "SendOrder.h"
 #include "Types.h"
@@ -47,13 +53,18 @@ CCqUsbCam::CCqUsbCam(HANDLE h)
 
 	m_bIsInterfaceClaimed=false; 		
 	m_bIsCapturing=false;
-
-	RegisterSensor_AR0135(m_sensorList);
-	RegisterSensor_MT9V034(m_sensorList);
-	RegisterSensor_MT9M001(m_sensorList);
-	RegisterSensor_SC130GS(m_sensorList);
-	RegisterSensor_MT9P031(m_sensorList);
-
+	list<tagSensor> temp_sensorList;
+	RegisterSensor_AR0135(temp_sensorList);
+	RegisterSensor_MT9V034(temp_sensorList);
+	RegisterSensor_MT9M001(temp_sensorList);
+	RegisterSensor_SC130GS(temp_sensorList);
+	RegisterSensor_MT9P031(temp_sensorList);
+	for each (auto it in temp_sensorList)
+	{
+		tagSensor* tag = new tagSensor();
+		memcpy(tag, &it, sizeof(tagSensor));
+		m_sensorList.push_back(tag);
+	}
 	m_pUsbHandle=new CCyUSBDevice(h);
 	assert(NULL!=m_pUsbHandle);
 
@@ -80,18 +91,25 @@ cq_int32_t  CCqUsbCam::SelectSensor(string* pStrSensorName)
 {
 	assert(NULL!=pStrSensorName);
 
-	list<tagSensor>::iterator i;      
+//	list<tagSensor*>::iterator i;      
 
 	if(0==m_sensorList.size())
 		return -1;
 
-    for (i = m_sensorList.begin(); i != m_sensorList.end(); ++i)   
-    {
-		if((*pStrSensorName)==(*i).name)
-		{
-			m_sensorInUse=(*i);
-			return 0;
-		}
+ //   for (i = m_sensorList.begin(); i != m_sensorList.end(); ++i)   
+ //   {
+	//	if((*pStrSensorName)==(*i).name)
+	//	{
+	//		m_sensorInUse=(*i);
+	//		return 0;
+	//	}
+	//}
+	m_sensorInUse = new tagSensor();
+	for each (auto it in m_sensorList)
+	{
+		if (it->name != (*pStrSensorName)) continue;
+		memcpy(m_sensorInUse, it, sizeof(tagSensor));
+		return 0;
 	}
 	return -2;
 
@@ -182,10 +200,10 @@ cq_int32_t  CCqUsbCam::InitSensor()
 	if(false == m_bIsInterfaceClaimed)
 		return ERR_ITF_NOT_CLAIMED;
 
-    if(NULL==m_sensorInUse.InitSensor)
+    if(NULL==m_sensorInUse->InitSensor)
 		return ERR_NULL_FUNC_POINTER;
 
-	return m_sensorInUse.InitSensor(m_pUsbHandle);
+	return m_sensorInUse->InitSensor(m_pUsbHandle);
 }
 
 
@@ -197,11 +215,19 @@ cq_int32_t  CCqUsbCam::StartCap(const cq_uint32_t iHeight, const cq_uint32_t iWi
 	if(true ==m_bIsCapturing)
 		return ERR_IS_CAPTURING;
 	 
-	if(NULL==m_sensorInUse.StartCap)
+	if(NULL==m_sensorInUse->StartCap)
 		return ERR_NULL_FUNC_POINTER;
-
+	cq_uint32_t h,w,temp;
+	RdFpgaReg(1, temp);
+	h = temp << 8;
+	RdFpgaReg(2, temp);
+	h = temp + h;
+	RdFpgaReg(3, temp);
+	w = temp << 8;
+	RdFpgaReg(4, temp);
+	w = temp + w;
 	m_pImgQueue=new wqueue<CImgFrame*>;
-	m_pDataCap=new CDataCapture(iWidth, iHeight);
+	m_pDataCap=new CDataCapture(w, h);
 	m_pDataProc=new CDataProcess();
 
 	assert(NULL!=m_pImgQueue);
@@ -219,7 +245,7 @@ cq_int32_t  CCqUsbCam::StartCap(const cq_uint32_t iHeight, const cq_uint32_t iWi
     m_pDataCap->Open();
 	m_pDataProc->Open();
 
-	m_sensorInUse.StartCap(m_pUsbHandle);
+	m_sensorInUse->StartCap(m_pUsbHandle);
 
 	m_bIsCapturing=true;
 	return 0;
@@ -231,15 +257,15 @@ cq_int32_t  CCqUsbCam::StopCap()
 	if(true!=m_bIsCapturing)
 		return ERR_IS_NOT_CAPTURING;
 
-	if(NULL==m_sensorInUse.StopCap)
+	if(NULL==m_sensorInUse->StopCap)
 		return ERR_NULL_FUNC_POINTER;
 
-	//m_sensorInUse.StopCap(m_pUsbHandle);
+	//m_sensorInUse->StopCap(m_pUsbHandle);
 
 	m_pDataProc->Close();//���뱣֤��ֹͣ�ɼ�֮ǰͣ�������̣߳�������������
     m_pDataCap->Close();
 
-	m_sensorInUse.StopCap(m_pUsbHandle);
+	m_sensorInUse->StopCap(m_pUsbHandle);
 	
 
 	if(NULL!=m_pImgQueue)	delete m_pImgQueue;
@@ -359,9 +385,9 @@ cq_int32_t CCqUsbCam::SetAnalogGain(const cq_uint32_t chTrigType, const cq_uint3
 	if(false == m_bIsInterfaceClaimed)
 		return ERR_ITF_NOT_CLAIMED;
 
-    if(NULL==m_sensorInUse.SetAnalogGain)
+    if(NULL==m_sensorInUse->SetAnalogGain)
 		return ERR_NULL_FUNC_POINTER;
-	return m_sensorInUse.SetAnalogGain(m_pUsbHandle, chTrigType, chGainType);
+	return m_sensorInUse->SetAnalogGain(m_pUsbHandle, chTrigType, chGainType);
 }
 
 cq_int32_t CCqUsbCam::SetFpgaTrigFreq(const cq_uint32_t iFreqVal)
@@ -369,9 +395,9 @@ cq_int32_t CCqUsbCam::SetFpgaTrigFreq(const cq_uint32_t iFreqVal)
 	if(false == m_bIsInterfaceClaimed)
 		return ERR_ITF_NOT_CLAIMED;
 
-    if(NULL==m_sensorInUse.SetFpgaTrigFreq)
+    if(NULL==m_sensorInUse->SetFpgaTrigFreq)
 		return ERR_NULL_FUNC_POINTER;
-	return m_sensorInUse.SetFpgaTrigFreq(m_pUsbHandle, iFreqVal);
+	return m_sensorInUse->SetFpgaTrigFreq(m_pUsbHandle, iFreqVal);
 }
 
 cq_int32_t CCqUsbCam::SetTrigMode(const cq_uint32_t chTrigType)
@@ -379,9 +405,9 @@ cq_int32_t CCqUsbCam::SetTrigMode(const cq_uint32_t chTrigType)
 	if(false == m_bIsInterfaceClaimed)
 		return ERR_ITF_NOT_CLAIMED;
 
-    if(NULL==m_sensorInUse.SetTrigMode)
+    if(NULL==m_sensorInUse->SetTrigMode)
 		return ERR_NULL_FUNC_POINTER;
-	return m_sensorInUse.SetTrigMode(m_pUsbHandle, chTrigType);
+	return m_sensorInUse->SetTrigMode(m_pUsbHandle, chTrigType);
 }
 
 cq_int32_t CCqUsbCam::SetExpoValue(const cq_uint32_t iExpoVal)
@@ -389,9 +415,9 @@ cq_int32_t CCqUsbCam::SetExpoValue(const cq_uint32_t iExpoVal)
 	if(false == m_bIsInterfaceClaimed)
 		return ERR_ITF_NOT_CLAIMED;
 
-    if(NULL==m_sensorInUse.SetExpoValue)
+    if(NULL==m_sensorInUse->SetExpoValue)
 		return ERR_NULL_FUNC_POINTER;
-	return m_sensorInUse.SetExpoValue(m_pUsbHandle, iExpoVal);
+	return m_sensorInUse->SetExpoValue(m_pUsbHandle, iExpoVal);
 }
 
 cq_int32_t CCqUsbCam::SetGainValue(const cq_uint32_t iGainVal)
@@ -399,9 +425,9 @@ cq_int32_t CCqUsbCam::SetGainValue(const cq_uint32_t iGainVal)
 	if(false == m_bIsInterfaceClaimed)
 		return ERR_ITF_NOT_CLAIMED;
 
-    if(NULL==m_sensorInUse.SetGainValue)
+    if(NULL==m_sensorInUse->SetGainValue)
 		return ERR_NULL_FUNC_POINTER;
-	return m_sensorInUse.SetGainValue(m_pUsbHandle, iGainVal);
+	return m_sensorInUse->SetGainValue(m_pUsbHandle, iGainVal);
 }
 
 cq_int32_t CCqUsbCam::SetAutoGainExpo(const cq_bool_t bIsAutoGain, const cq_bool_t bIsAutoExpo)
@@ -409,9 +435,9 @@ cq_int32_t CCqUsbCam::SetAutoGainExpo(const cq_bool_t bIsAutoGain, const cq_bool
 	if(false == m_bIsInterfaceClaimed)
 		return ERR_ITF_NOT_CLAIMED;
 
-    if(NULL==m_sensorInUse.SetAutoGainExpo)
+    if(NULL==m_sensorInUse->SetAutoGainExpo)
 		return ERR_NULL_FUNC_POINTER;
-	return m_sensorInUse.SetAutoGainExpo(m_pUsbHandle, bIsAutoGain, bIsAutoExpo);
+	return m_sensorInUse->SetAutoGainExpo(m_pUsbHandle, bIsAutoGain, bIsAutoExpo);
 }
 
 cq_int32_t CCqUsbCam::SetResolution(const cq_uint32_t chResoluType)
@@ -419,9 +445,9 @@ cq_int32_t CCqUsbCam::SetResolution(const cq_uint32_t chResoluType)
 	if(false == m_bIsInterfaceClaimed)
 		return ERR_ITF_NOT_CLAIMED;
 
-    if(NULL==m_sensorInUse.SetResolution)
+    if(NULL==m_sensorInUse->SetResolution)
 		return ERR_NULL_FUNC_POINTER;
-	return m_sensorInUse.SetResolution(m_pUsbHandle, chResoluType);
+	return m_sensorInUse->SetResolution(m_pUsbHandle, chResoluType);
 }
 
 cq_int32_t CCqUsbCam::SetMirrorType(const cq_uint32_t chMirrorType)
@@ -429,9 +455,9 @@ cq_int32_t CCqUsbCam::SetMirrorType(const cq_uint32_t chMirrorType)
 	if(false == m_bIsInterfaceClaimed)
 		return ERR_ITF_NOT_CLAIMED;
 
-    if(NULL==m_sensorInUse.SetMirrorType)
+    if(NULL==m_sensorInUse->SetMirrorType)
 		return ERR_NULL_FUNC_POINTER;
-	return m_sensorInUse.SetMirrorType(m_pUsbHandle, chMirrorType);
+	return m_sensorInUse->SetMirrorType(m_pUsbHandle, chMirrorType);
 }
 
 cq_int32_t CCqUsbCam::SetBitDepth(const cq_uint32_t chBitDepthType)
@@ -439,9 +465,9 @@ cq_int32_t CCqUsbCam::SetBitDepth(const cq_uint32_t chBitDepthType)
 	if(false == m_bIsInterfaceClaimed)
 		return ERR_ITF_NOT_CLAIMED;
 
-    if(NULL==m_sensorInUse.SetBitDepth)
+    if(NULL==m_sensorInUse->SetBitDepth)
 		return ERR_NULL_FUNC_POINTER;
-	return m_sensorInUse.SetBitDepth(m_pUsbHandle, chBitDepthType);
+	return m_sensorInUse->SetBitDepth(m_pUsbHandle, chBitDepthType);
 }
 
 cq_int32_t CCqUsbCam::SendUsbSpeed2Fpga(const cq_uint32_t chSpeedType)
@@ -449,27 +475,27 @@ cq_int32_t CCqUsbCam::SendUsbSpeed2Fpga(const cq_uint32_t chSpeedType)
 	if(false == m_bIsInterfaceClaimed)
 		return ERR_ITF_NOT_CLAIMED;
 
-    if(NULL==m_sensorInUse.SendUsbSpeed2Fpga)
+    if(NULL==m_sensorInUse->SendUsbSpeed2Fpga)
 		return ERR_NULL_FUNC_POINTER;
-	return m_sensorInUse.SendUsbSpeed2Fpga(m_pUsbHandle, chSpeedType);
+	return m_sensorInUse->SendUsbSpeed2Fpga(m_pUsbHandle, chSpeedType);
 }
 cq_int32_t CCqUsbCam::SoftTrig()
 {
 	if(false == m_bIsInterfaceClaimed)
 		return ERR_ITF_NOT_CLAIMED;
 
-    if(NULL==m_sensorInUse.SoftTrig)
+    if(NULL==m_sensorInUse->SoftTrig)
 		return ERR_NULL_FUNC_POINTER;
-	return m_sensorInUse.SoftTrig(m_pUsbHandle);
+	return m_sensorInUse->SoftTrig(m_pUsbHandle);
 }
 cq_int32_t CCqUsbCam::WrSensorReg(const cq_uint32_t iAddr, const cq_uint32_t iValue)
 {
 	if(false == m_bIsInterfaceClaimed)
 		return ERR_ITF_NOT_CLAIMED;
 
-    if(NULL==m_sensorInUse.WrSensorReg)
+    if(NULL==m_sensorInUse->WrSensorReg)
 		return ERR_NULL_FUNC_POINTER;
-	return m_sensorInUse.WrSensorReg(m_pUsbHandle, iAddr, iValue);
+	return m_sensorInUse->WrSensorReg(m_pUsbHandle, iAddr, iValue);
 }
 
 cq_int32_t CCqUsbCam::RdSensorReg(const cq_uint32_t iAddr, cq_uint32_t &iValue)
@@ -477,9 +503,9 @@ cq_int32_t CCqUsbCam::RdSensorReg(const cq_uint32_t iAddr, cq_uint32_t &iValue)
 	if(false == m_bIsInterfaceClaimed)
 		return ERR_ITF_NOT_CLAIMED;
 
-    if(NULL==m_sensorInUse.RdSensorReg)
+    if(NULL==m_sensorInUse->RdSensorReg)
 		return ERR_NULL_FUNC_POINTER;
-	return m_sensorInUse.RdSensorReg(m_pUsbHandle, iAddr, iValue);
+	return m_sensorInUse->RdSensorReg(m_pUsbHandle, iAddr, iValue);
 }
 
 cq_int32_t CCqUsbCam::WrFpgaReg(const cq_uint32_t 	iAddr, const cq_uint32_t iValue)
@@ -487,9 +513,9 @@ cq_int32_t CCqUsbCam::WrFpgaReg(const cq_uint32_t 	iAddr, const cq_uint32_t iVal
 	if(false == m_bIsInterfaceClaimed)
 		return ERR_ITF_NOT_CLAIMED;
 
-    if(NULL==m_sensorInUse.WrFpgaReg)
+    if(NULL==m_sensorInUse->WrFpgaReg)
 		return ERR_NULL_FUNC_POINTER;
-	return m_sensorInUse.WrFpgaReg(m_pUsbHandle, iAddr, iValue);
+	return m_sensorInUse->WrFpgaReg(m_pUsbHandle, iAddr, iValue);
 }
 
 cq_int32_t CCqUsbCam::RdFpgaReg(const cq_uint32_t 	iAddr, cq_uint32_t &iValue)
@@ -497,18 +523,18 @@ cq_int32_t CCqUsbCam::RdFpgaReg(const cq_uint32_t 	iAddr, cq_uint32_t &iValue)
 	if(false == m_bIsInterfaceClaimed)
 		return ERR_ITF_NOT_CLAIMED;
 
-    if(NULL==m_sensorInUse.RdFpgaReg)
+    if(NULL==m_sensorInUse->RdFpgaReg)
 		return ERR_NULL_FUNC_POINTER;
-	return m_sensorInUse.RdFpgaReg(m_pUsbHandle, iAddr, iValue);
+	return m_sensorInUse->RdFpgaReg(m_pUsbHandle, iAddr, iValue);
 }
 cq_int32_t CCqUsbCam::ArbitrFunc(LPVOID arg)
 {
 	if (false == m_bIsInterfaceClaimed)
 		return ERR_ITF_NOT_CLAIMED;
 
-	if (NULL == m_sensorInUse.WrFpgaReg)
+	if (NULL == m_sensorInUse->WrFpgaReg)
 		return ERR_NULL_FUNC_POINTER;
-	return m_sensorInUse.ArbitrFunc(m_pUsbHandle,arg);
+	return m_sensorInUse->ArbitrFunc(m_pUsbHandle,arg);
 }
 
 void CCqUsbCam::GetRecvByteCnt(cq_uint64_t& byteCnt)

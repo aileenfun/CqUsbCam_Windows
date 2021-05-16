@@ -51,7 +51,8 @@ void CusbCamConsoleDlg::Disp(LPVOID lpParam)
 	printf("img time stamp:%d", timestamp);
 
 	cq_uint8_t* pDataBuffer = imgframe->m_imgBuf;
-	cv::Mat frame(g_iHeight, g_iWidth, (g_byteBitDepthNo==1? CV_8UC1: CV_16UC1) ,pDataBuffer);
+	
+	cv::Mat frame(imgframe->m_height, imgframe->m_width, (g_byteBitDepthNo==1? CV_8UC1: CV_16UC1) ,pDataBuffer);
 	
 	//WaitForSingleObject(g_mutexDisp, INFINITE); 
 	cv::imshow("disp",frame);

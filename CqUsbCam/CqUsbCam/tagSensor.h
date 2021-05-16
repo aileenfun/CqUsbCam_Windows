@@ -64,8 +64,9 @@ typedef cq_int32_t(*RdDevSN_t)(CCyUSBDevice *, cq_uint8_t *, cq_uint32_t &);
 typedef cq_int32_t (*SoftTrig_t)(CCyUSBDevice*);
 
 typedef cq_int32_t(*ArbitrFunc_t)(CCyUSBDevice*, LPVOID lpParam);
-typedef struct 
+class tagSensor
 {
+public:
 	string 				name;
 	cq_uint8_t 			iicAddr;
 	cq_uint8_t			regAddrLen;
@@ -98,7 +99,7 @@ typedef struct
 	SoftTrig_t 			SoftTrig;
 
 	ArbitrFunc_t       ArbitrFunc;
-} tagSensor;
+} ;
 
 
 #endif //_TAGSENSOR_H_

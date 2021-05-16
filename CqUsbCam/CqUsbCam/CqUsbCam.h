@@ -45,18 +45,21 @@ typedef int(__stdcall* csCallBackFuncDel)(unsigned char* buff);
 #include <list>
 
 //#include "cyusb.h"
-#include "CyAPI.h"
-
-#include "Types.h"
+//
+//#include "CyAPI.h"
+//#include "Types.h"
 #include "ImgFrame.h"
 #include "wqueue.h"
-#include "DataCapture.h"
-#include "DataProcess.h"
-#include "tagSensor.h"
+//#include "DataCapture.h"
+//#include "DataProcess.h"
+//#include "tagSensor.h"
 #include "devInfo.h"
-#include <vector>
-
-
+//#include <vector>
+//
+class CCyUSBDevice;
+class CDataCapture;
+class CDataProcess;
+class tagSensor;
 #define USB_SPEED_SUPER		0x00
 #define USB_SPEED_HIGH		0x01
 
@@ -77,8 +80,8 @@ private:
 	CDataCapture *m_pDataCap;
 	CDataProcess *m_pDataProc;
 
-	list<tagSensor> m_sensorList;
- 	tagSensor m_sensorInUse;		
+	list<tagSensor*> m_sensorList;
+ 	tagSensor *m_sensorInUse;		
 	
 			
 	cq_bool_t m_bIsCapturing;
